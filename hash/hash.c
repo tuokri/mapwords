@@ -2,10 +2,10 @@
 
 #include "hash.h"
 
-uint64_t
+hash_t
 hash_djb2(char *str)
 {
-    uint64_t hash = 5381;
+    hash_t hash = 5381;
     int8_t c;
 
     while(c = *str++)
@@ -17,10 +17,10 @@ hash_djb2(char *str)
     return hash;
 }
 
-uint64_t
+hash_t
 hash_sdbm(char *str)
 {
-    uint64_t hash = 0;
+    hash_t hash = 0;
     int8_t c;
 
     while(c = *str++)
