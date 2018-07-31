@@ -1,3 +1,9 @@
+# CLion
+.idea
+
+# Python
+venv
+
 # Prerequisites
 *.d
 
