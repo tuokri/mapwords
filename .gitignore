@@ -4,6 +4,9 @@
 # Python
 venv
 
+# CMake
+cmake-build-debug
+
 # Prerequisites
 *.d
 
