@@ -11,4 +11,5 @@ add_executable(
     mapwords
     main.c
     hash/hash.h
-    hash/hash.c)
+    hash/hash.c
+    hashmap/hashmap.h)
