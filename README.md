@@ -1,0 +1,3 @@
+# mapwords
+
+Count distinct words.
