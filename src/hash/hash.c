@@ -6,7 +6,7 @@ hash_t
 hash_djb2(char *str)
 {
     hash_t hash = 5381;
-    char c;
+    int8_t c;
 
     while((c = *str++))
     {
@@ -21,7 +21,7 @@ hash_t
 hash_sdbm(char *str)
 {
     hash_t hash = 0;
-    char c;
+    int8_t c;
 
     while((c = *str++))
     {
