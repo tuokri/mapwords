@@ -5,12 +5,30 @@
 
 typedef uint64_t hash_t;
 
+/**
+ *
+ * @param buffer
+ * @param size
+ * @return
+ */
 hash_t
 hash_djb2(char* buffer, size_t size);
 
+/**
+ *
+ * @param buffer
+ * @param size
+ * @return
+ */
 hash_t
 hash_sdbm(char* buffer, size_t size);
 
+/**
+ *
+ * @param buffer
+ * @param size
+ * @return
+ */
 hash_t
 hash_sse42_crc32(char* buffer, size_t size);
 
