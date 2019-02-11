@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef uint64_t hash_t;
+typedef uint32_t hash_t;
 
 /**
  *
