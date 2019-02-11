@@ -6,7 +6,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 
 option(BUILD_TEST "Build the unit tests" ON)
 
-add_definitions(-Wall -Werror -msse4.2)
+include(CheckCCompilerFlag)
+
+check_c_compiler_flag(-msse4.2 SSE42_SUPPORTED)
+if(SSE42_SUPPORTED)
+    add_compile_options(-msse4.2)
+endif()
+add_compile_options(-Wall -Werror -pedantic)
 
 add_subdirectory(src)
 
