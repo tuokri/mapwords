@@ -6,8 +6,8 @@
 
 START_TEST(test_hash_djb2)
 {
-    hash_t h1 = hash_djb2("test1");
-    hash_t h2 = hash_djb2("test2");
+    hash_t h1 = hash_djb2("test1", 6);
+    hash_t h2 = hash_djb2("test2", 6);
     fail_if(h1 == h2);
 }
 END_TEST
