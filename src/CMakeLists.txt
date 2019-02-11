@@ -8,4 +8,4 @@ add_executable(
     main.c
     hash/hash.c
     hashmap/hashmap.c
-)
+    singlylinkedlist/singlylinkedlist.h)
