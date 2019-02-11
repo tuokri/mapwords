@@ -37,7 +37,7 @@ hash_sse42_crc32(char* buffer, size_t size)
 
     for(size_t i = 0; i < size; ++i)
     {
-        hash = _mm_crc32_u64(hash, buffer[i]);
+        hash = _mm_crc32_u8(hash, buffer[i]);
     }
 
     return hash;
