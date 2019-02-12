@@ -1,8 +1,11 @@
+sudo: required
+
 language: c
 
 compiler: gcc
 
 before_script:
+  - sudo apt-get update && sudo apt-get install -y check
   - mkdir build
   - cd build
   - cmake ..
