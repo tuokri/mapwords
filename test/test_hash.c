@@ -37,10 +37,11 @@ END_TEST
 
 START_TEST(test_hashmap)
 {
-    hashmap_t* map = init_hashmap(hash_sdbm, hash_crc32);
-    ck_assert_ptr_ne(map, NULL);
-    ck_assert_ptr_ne(map->buckets, NULL);
+    hashmap_t* map = NULL;
+    hashmap_init_result_t r = hashmap_init(map, hash_sdbm, hash_crc32);
+    fail_if(r == HASHMAP_INIT_NOK);
     ck_assert_uint_ne(map->size, 0);
+    hashmap_free(map);
 }
 END_TEST
 
@@ -50,15 +51,12 @@ Suite* hash_suite()
     TCase* tc_basic;
 
     s = suite_create("hash");
+
     tc_basic = tcase_create("basic");
-
     tcase_add_test(tc_basic, test_hash_djb2);
-    suite_add_tcase(s, tc_basic);
-
     tcase_add_test(tc_basic, test_hash_sdbm);
-    suite_add_tcase(s, tc_basic);
-
     tcase_add_test(tc_basic, test_hash_crc32);
+
     suite_add_tcase(s, tc_basic);
 
     return s;
@@ -73,6 +71,7 @@ Suite* hashmap_suite()
     tc_basic = tcase_create("basic");
 
     tcase_add_test(tc_basic, test_hashmap);
+
     suite_add_tcase(s, tc_basic);
 
     return s;
@@ -81,20 +80,23 @@ Suite* hashmap_suite()
 int main()
 {
     int number_failed = 0;
-    Suite* suite;
     SRunner* srunner;
 
-    suite = hash_suite();
+    Suite* hash_suite;
+    Suite* hashmap_suite;
+
+    srunner = srunner_create(make_master_suite());
+
+    hash_suite = hash_suite();
+    srunner_run_all(srunner, CK_NORMAL);
+    number_failed += srunner_ntests_failed(srunner);
+    srunner_free(srunner);
+
+    hashmap_suite = hashmap_suite();
     srunner = srunner_create(suite);
     srunner_run_all(srunner, CK_NORMAL);
     number_failed += srunner_ntests_failed(srunner);
 
-    suite = hashmap_suite();
-    srunner = srunner_create(suite);
-    srunner_run_all(srunner, CK_NORMAL);
-    number_failed += srunner_ntests_failed(srunner);
-
-    //srunner_free(srunner); causes free(): invalid pointer with "make test" ???
-
+    srunner_free(srunner);
     return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
