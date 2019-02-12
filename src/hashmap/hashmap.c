@@ -524,8 +524,10 @@ init_hashmap(
     hash_t (*hash1)(char* buffer, size_t size),
     hash_t (*hash2)(char* buffer, size_t size))
 {
+    size_t init_size = hashmap_sizetable[0];
     hashmap_t* m = malloc(sizeof(hashmap_t));
-    m->size = hashmap_sizetable[0];
+    m->buckets = malloc(sizeof(bucket_t) * init_size);
+    m->size = init_size;
     m->hash1 = hash1;
     m->hash2 = hash2;
     return m;

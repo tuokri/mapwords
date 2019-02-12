@@ -10,19 +10,19 @@
 // Need a prime table for resizing?
 // Store arbitrary data in hashmap with void*?
 
-typedef struct hashmap_element
+typedef struct hashmap_bucket
 {
-    // store key??
-    void* data; // Use int for word counting?
     size_t size;
-} element_t;
+    void* key;
+    void* value;
+} bucket_t;
 
-typedef struct hashmap
+typedef struct hashmap_map
 {
     size_t size;
     hash_t (*hash1)(char* buffer, size_t size);
     hash_t (*hash2)(char* buffer, size_t size);
-    element_t* elements;
+    bucket_t* buckets;
 } hashmap_t;
 
 hashmap_t*
