@@ -519,16 +519,37 @@ static const uint32_t hashmap_sizetable[4096] =
     38593, 38603, 38609, 38611, 38629
 };
 
-hashmap_t*
-init_hashmap(
+hashmap_init_result_t
+hashmap_init(
+    hashmap_t* map,
     hash_t (*hash1)(char* buffer, size_t size),
     hash_t (*hash2)(char* buffer, size_t size))
 {
     size_t init_size = hashmap_sizetable[0];
-    hashmap_t* m = malloc(sizeof(hashmap_t));
-    m->buckets = malloc(sizeof(bucket_t) * init_size);
-    m->size = init_size;
-    m->hash1 = hash1;
-    m->hash2 = hash2;
-    return m;
+
+    map = malloc(sizeof(hashmap_t));
+    if(!map)
+    {
+        return HASHMAP_INIT_NOK;
+    }
+
+    map->buckets = malloc(sizeof(bucket_t) * init_size);
+    if(!map->buckets)
+    {
+        free(map);
+        return HASHMAP_INIT_NOK;
+    }
+
+    map->size = init_size;
+    map->hash1 = hash1;
+    map->hash2 = hash2;
+
+    return HASHMAP_INIT_OK;
+}
+
+void
+hashmap_free(hashmap_t* map)
+{
+    free(map->buckets);
+    free(map);
 }
