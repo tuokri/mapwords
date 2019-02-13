@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "hashmap.h"
 
@@ -519,32 +520,34 @@ static const uint32_t hashmap_sizetable[4096] =
     38593, 38603, 38609, 38611, 38629
 };
 
-hashmap_init_result_t
+hashmap_t*
 hashmap_init(
-    hashmap_t* map,
     hash_t (*hash1)(char* buffer, size_t size),
     hash_t (*hash2)(char* buffer, size_t size))
 {
     size_t init_size = hashmap_sizetable[0];
+    printf("init_size = %zu\n", init_size);
 
-    map = malloc(sizeof(hashmap_t));
+    hashmap_t* map = malloc(sizeof(hashmap_t));
     if(!map)
     {
-        return HASHMAP_INIT_NOK;
+        perror("hashmap_init(): map\n");
+        return NULL;
     }
 
     map->buckets = malloc(sizeof(bucket_t) * init_size);
     if(!map->buckets)
     {
+        perror("hashmap_init(): map->buckets\n");
         free(map);
-        return HASHMAP_INIT_NOK;
+        return NULL;
     }
 
     map->size = init_size;
     map->hash1 = hash1;
     map->hash2 = hash2;
 
-    return HASHMAP_INIT_OK;
+    return map;
 }
 
 void

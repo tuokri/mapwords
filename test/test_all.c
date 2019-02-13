@@ -1,5 +1,6 @@
 #include <check.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "hash.h"
 #include "hashmap.h"
@@ -37,15 +38,15 @@ END_TEST
 
 START_TEST(test_hashmap)
 {
-    hashmap_t* map = NULL;
-    hashmap_init_result_t r = hashmap_init(map, hash_sdbm, hash_crc32);
-    fail_if(r == HASHMAP_INIT_NOK);
+    hashmap_t* map = hashmap_init(hash_sdbm, hash_crc32);
+    ck_assert_ptr_ne(map, NULL);
+    ck_assert_ptr_ne(map->buckets, NULL);
     ck_assert_uint_ne(map->size, 0);
     hashmap_free(map);
 }
 END_TEST
 
-Suite* make_hash_suite()
+Suite* make_hash_suite(void)
 {
     Suite* s;
     TCase* tc_basic;
@@ -53,6 +54,7 @@ Suite* make_hash_suite()
     s = suite_create("hash");
 
     tc_basic = tcase_create("basic");
+
     tcase_add_test(tc_basic, test_hash_djb2);
     tcase_add_test(tc_basic, test_hash_sdbm);
     tcase_add_test(tc_basic, test_hash_crc32);
@@ -62,7 +64,7 @@ Suite* make_hash_suite()
     return s;
 }
 
-Suite* make_hashmap_suite()
+Suite* make_hashmap_suite(void)
 {
     Suite* s;
     TCase* tc_basic;
@@ -77,8 +79,7 @@ Suite* make_hashmap_suite()
     return s;
 }
 
-// TODO: https://libcheck.github.io/check/doc/check_html/check_4.html#Running-Multiple-Cases
-int main()
+int main(void)
 {
     int number_failed = 0;
     SRunner* sr;
