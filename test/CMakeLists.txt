@@ -16,12 +16,12 @@ include_directories(
 )
 
 add_executable(
-    test_hash
-    test_hash.c
+    test_all
+    test_all.c
     ../src/hash/hash.c
     ../src/hashmap/hashmap.c
 )
 
-target_link_libraries(test_hash ${LIBS})
+target_link_libraries(test_all ${LIBS})
 
-add_test(test_hash test_hash)
+add_test(test_all test_all)

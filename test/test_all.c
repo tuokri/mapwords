@@ -45,7 +45,7 @@ START_TEST(test_hashmap)
 }
 END_TEST
 
-Suite* hash_suite()
+Suite* make_hash_suite()
 {
     Suite* s;
     TCase* tc_basic;
@@ -62,7 +62,7 @@ Suite* hash_suite()
     return s;
 }
 
-Suite* hashmap_suite()
+Suite* make_hashmap_suite()
 {
     Suite* s;
     TCase* tc_basic;
@@ -77,26 +77,18 @@ Suite* hashmap_suite()
     return s;
 }
 
+// TODO: https://libcheck.github.io/check/doc/check_html/check_4.html#Running-Multiple-Cases
 int main()
 {
     int number_failed = 0;
-    SRunner* srunner;
+    SRunner* sr;
 
-    Suite* hash_suite;
-    Suite* hashmap_suite;
+    sr = srunner_create(make_hash_suite());
+    srunner_add_suite(sr, make_hashmap_suite());
 
-    srunner = srunner_create(make_master_suite());
+    srunner_run_all(sr, CK_NORMAL);
+    number_failed = srunner_ntests_failed(sr);
+    srunner_free(sr);
 
-    hash_suite = hash_suite();
-    srunner_run_all(srunner, CK_NORMAL);
-    number_failed += srunner_ntests_failed(srunner);
-    srunner_free(srunner);
-
-    hashmap_suite = hashmap_suite();
-    srunner = srunner_create(suite);
-    srunner_run_all(srunner, CK_NORMAL);
-    number_failed += srunner_ntests_failed(srunner);
-
-    srunner_free(srunner);
     return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
