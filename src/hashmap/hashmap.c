@@ -611,11 +611,11 @@ hashmap_find(hashmap_t* map, hashmap_key_t* key)
             {
                 return j;
             }
-            ++probe_index;
-            if(probe_index < map->capacity)
-            {
-                j = hashmap_doublehash(map, key, probe_index);
-            }
+        }
+        ++probe_index;
+        if(probe_index < map->capacity)
+        {
+            j = hashmap_doublehash(map, key, probe_index);
         }
     }
 
