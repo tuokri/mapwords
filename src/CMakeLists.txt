@@ -1,6 +1,7 @@
 include_directories(
     hash
     hashmap
+    search
 )
 
 add_executable(
@@ -8,4 +9,5 @@ add_executable(
     main.c
     hash/hash.c
     hashmap/hashmap.c
+    search/search.c
 )
