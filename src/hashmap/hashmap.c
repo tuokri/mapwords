@@ -1,13 +1,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "hashmap.h"
 
 /**
  *
  */
-static const uint32_t hashmap_sizetable[4096] =
+static const uint32_t hashmap_capacity_lookup[4096] =
 {
     2,     3,     5,     7,     11,    13,    17,    19,
     23,    29,    31,    37,    41,    43,    47,    53,
@@ -520,32 +521,41 @@ static const uint32_t hashmap_sizetable[4096] =
     38593, 38603, 38609, 38611, 38629
 };
 
+hash_t
+hashmap_doublehash(hashmap_t* map, hashmap_key_t* key, uint32_t probe_index)
+{
+    return (
+        map->hashf1(key->key, key->size) + (probe_index * map->hashf2(key->key, key->size))
+        ) % map->capacity;
+}
+
 hashmap_t*
 hashmap_init(
-    hash_t (*hash1)(char* buffer, size_t size),
-    hash_t (*hash2)(char* buffer, size_t size))
+    hash_t (*hashf1)(char*, size_t),
+    hash_t (*hashf2)(char*, size_t))
 {
-    size_t init_size = hashmap_sizetable[0];
-    printf("init_size = %zu\n", init_size);
+    uint32_t init_cap = hashmap_capacity_lookup[0];
+    printf("hashmap_init(): init_cap = %u\n", init_cap);
 
-    hashmap_t* map = malloc(sizeof(hashmap_t));
+    hashmap_t* map = calloc(1, sizeof(hashmap_t));
     if(!map)
     {
-        perror("hashmap_init(): map\n");
+        fprintf(stderr, "hashmap_init(): calloc(): map\n");
         return NULL;
     }
 
-    map->buckets = malloc(sizeof(bucket_t) * init_size);
-    if(!map->buckets)
+    map->size = 0;
+    map->capacity = 0;
+    map->buckets = NULL;
+    map->hashf1 = hashf1;
+    map->hashf2 = hashf2;
+
+    if(!hashmap_resize(map, init_cap))
     {
-        perror("hashmap_init(): map->buckets\n");
-        free(map);
+        fprintf(stderr, "hashmap_init(): hashmap_resize()\n");
+        hashmap_free(map);
         return NULL;
     }
-
-    map->size = init_size;
-    map->hash1 = hash1;
-    map->hash2 = hash2;
 
     return map;
 }
@@ -553,6 +563,148 @@ hashmap_init(
 void
 hashmap_free(hashmap_t* map)
 {
+    hashmap_clear(map);
     free(map->buckets);
+    map->buckets = NULL;
+    map->capacity = 0;
     free(map);
+}
+
+int64_t
+hashmap_add(hashmap_t* map, hashmap_key_t* key, void* value)
+{
+    uint32_t probe_index = 0;
+    printf("map->capacity=%u\n", map->capacity);
+
+    while(probe_index < map->capacity)
+    {
+        hash_t j = hashmap_doublehash(map, key, probe_index);
+        printf("hashmap_add(): j=%u\n", j);
+        if(map->buckets[probe_index] == NULL)
+        {
+            map->buckets[j] = calloc(1, sizeof(hashmap_bucket_t));
+            map->buckets[j]->key = key;
+            map->buckets[j]->value = value;
+            map->size++;
+            return j;
+        }
+        ++probe_index;
+    }
+
+    // Resize and try to add key and value into hashmap.
+    // TODO: Get next capacity dynamically!
+    hashmap_resize(map, 50000);
+    hashmap_add(map, key, value);
+
+    return HASHMAP_KEY_NOT_FOUND;
+}
+
+int64_t
+hashmap_find(hashmap_t* map, hashmap_key_t* key)
+{
+    uint32_t probe_index = 0;
+    hash_t j = hashmap_doublehash(map, key, probe_index);
+
+    while(probe_index < map->capacity)
+    {
+        if(map->buckets[j] != NULL)
+        {
+            if(strcmp(map->buckets[j]->key->key, key->key) == 0)
+            {
+                return j;
+            }
+            ++probe_index;
+            if(probe_index < map->capacity)
+            {
+                j = hashmap_doublehash(map, key, probe_index);
+            }
+        }
+    }
+
+    return HASHMAP_KEY_NOT_FOUND;
+}
+
+int64_t
+hashmap_remove(hashmap_t* map, hashmap_key_t* key)
+{
+    return 0;
+}
+
+bool
+hashmap_resize(hashmap_t* map, uint32_t new_capacity)
+{
+    if(new_capacity == map->capacity)
+    {
+        fprintf(stderr, "hashmap_resize(): new_capacity == map->capacity");
+        return false;
+    }
+
+    hashmap_bucket_t** new_buckets = calloc(new_capacity, sizeof(hashmap_bucket_t*));
+    if(!new_buckets)
+    {
+        fprintf(stderr, "hashmap_resize(): calloc(): new_buckets");
+        return false;
+    }
+
+    if(new_capacity > map->capacity)
+    {
+        memcpy(new_buckets, map->buckets, map->capacity);
+        free(map->buckets);
+        map->buckets = new_buckets;
+        hashmap_rehash(map, new_capacity);
+    }
+    else
+    {
+        hashmap_rehash(map, new_capacity);
+        memcpy(new_buckets, map->buckets, new_capacity);
+        free(map->buckets);
+        map->buckets = new_buckets;
+    }
+
+    map->capacity = new_capacity;
+
+    return true;
+}
+
+bool
+hashmap_rehash(hashmap_t* map, uint32_t new_capacity)
+{
+    puts("rehashing");
+
+    if(new_capacity == map->capacity)
+    {
+        fprintf(stderr, "hashmap_rehash(): new_capacity == map->capacity");
+        return false;
+    }
+
+    map->capacity = new_capacity;
+
+    for(uint32_t i = 0; i < map->capacity; ++i)
+    {
+        hashmap_bucket_t* bucket;
+        if((bucket = map->buckets[i]) != NULL)
+        {
+            free(map->buckets[i]);
+            map->buckets[i] = NULL;
+            hashmap_add(map, bucket->key, bucket->value);
+        }
+    }
+
+    return true;
+}
+
+void
+hashmap_clear(hashmap_t* map)
+{
+    for(uint32_t i = 0; i < map->capacity; ++i)
+    {
+        if(map->buckets[i] != NULL)
+        {
+            free(map->buckets[i]);
+            map->buckets[i] = NULL;
+        }
+    }
+
+    memset(map->buckets, 0, map->capacity * sizeof(hashmap_bucket_t*));
+    map->size = 0;
 }
