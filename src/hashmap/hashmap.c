@@ -574,12 +574,10 @@ int64_t
 hashmap_add(hashmap_t* map, hashmap_key_t* key, void* value)
 {
     uint32_t probe_index = 0;
-    printf("map->capacity=%u\n", map->capacity);
 
     while(probe_index < map->capacity)
     {
         hash_t j = hashmap_doublehash(map, key, probe_index);
-        printf("hashmap_add(): j=%u\n", j);
         if(map->buckets[probe_index] == NULL)
         {
             map->buckets[j] = calloc(1, sizeof(hashmap_bucket_t));
@@ -627,7 +625,14 @@ hashmap_find(hashmap_t* map, hashmap_key_t* key)
 int64_t
 hashmap_remove(hashmap_t* map, hashmap_key_t* key)
 {
-    return 0;
+    int64_t i = hashmap_find(map, key);
+    if(i != HASHMAP_KEY_NOT_FOUND)
+    {
+        free(map->buckets[i]);
+        map->buckets[i] = NULL;
+        return i;
+    }
+    return HASHMAP_KEY_NOT_FOUND;
 }
 
 bool
@@ -669,8 +674,6 @@ hashmap_resize(hashmap_t* map, uint32_t new_capacity)
 bool
 hashmap_rehash(hashmap_t* map, uint32_t new_capacity)
 {
-    puts("rehashing");
-
     if(new_capacity == map->capacity)
     {
         fprintf(stderr, "hashmap_rehash(): new_capacity == map->capacity");
