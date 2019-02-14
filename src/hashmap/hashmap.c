@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "hashmap.h"
+#include "search.h"
 
 /**
  *
@@ -522,7 +523,8 @@ static const uint32_t hashmap_capacity_lookup[4096] =
 };
 
 hash_t
-hashmap_doublehash(hashmap_t* map, hashmap_key_t* key, uint32_t probe_index)
+hashmap_doublehash(hashmap_t* map, hashmap_key_t* key,
+    uint32_t probe_index)
 {
     return (
         map->hashf1(key->key, key->size) + (probe_index * map->hashf2(key->key, key->size))
@@ -591,6 +593,7 @@ hashmap_add(hashmap_t* map, hashmap_key_t* key, void* value)
 
     // Resize and try to add key and value into hashmap.
     // TODO: Get next capacity dynamically!
+    // TODO: Resize based on load factor.
     hashmap_resize(map, 50000);
     hashmap_add(map, key, value);
 
@@ -651,22 +654,27 @@ hashmap_resize(hashmap_t* map, uint32_t new_capacity)
         return false;
     }
 
+    bool rehash_result;
     if(new_capacity > map->capacity)
     {
         memcpy(new_buckets, map->buckets, map->capacity);
         free(map->buckets);
         map->buckets = new_buckets;
-        hashmap_rehash(map, new_capacity);
+        rehash_result = hashmap_rehash(map, new_capacity);
     }
     else
     {
-        hashmap_rehash(map, new_capacity);
+        rehash_result = hashmap_rehash(map, new_capacity);
         memcpy(new_buckets, map->buckets, new_capacity);
         free(map->buckets);
         map->buckets = new_buckets;
     }
 
-    map->capacity = new_capacity;
+    // TODO: Handle this error case?
+    if(!rehash_result)
+    {
+        fprintf(stderr, "hashmap_resize(): error rehashing");
+    }
 
     return true;
 }
@@ -710,4 +718,21 @@ hashmap_clear(hashmap_t* map)
 
     memset(map->buckets, 0, map->capacity * sizeof(hashmap_bucket_t*));
     map->size = 0;
+}
+
+uint32_t
+hashmap_get_prime(uint32_t* lookup, uint32_t target,
+    hashmap_lookup_direction_t direction)
+{
+    switch(direction)
+    {
+        case hashmap_lookup_direction_forward:
+            return 0;
+        case hashmap_lookup_direction_backward:
+            return 1;
+        default:
+            perror("hashmap_get_prime(): unknown error");
+            exit(1);
+            return 0; // Suppress -Werror=return-type
+    }
 }

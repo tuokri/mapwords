@@ -8,6 +8,12 @@
 
 #define HASHMAP_KEY_NOT_FOUND -1
 
+typedef enum
+{
+    hashmap_lookup_direction_forward,
+    hashmap_lookup_direction_backward
+} hashmap_lookup_direction_t;
+
 typedef struct hashmap_key
 {
     size_t size;
@@ -30,7 +36,8 @@ typedef struct hashmap_map
 } hashmap_t;
 
 hash_t
-hashmap_doublehash(hashmap_t* map, hashmap_key_t* key, uint32_t probe_index);
+hashmap_doublehash(hashmap_t* map, hashmap_key_t* key,
+    uint32_t probe_index);
 
 hashmap_t*
 hashmap_init(
@@ -57,5 +64,9 @@ hashmap_rehash(hashmap_t* map, uint32_t new_capacity);
 
 void
 hashmap_clear(hashmap_t* map);
+
+uint32_t
+hashmap_get_prime(uint32_t* lookup, uint32_t target,
+    hashmap_lookup_direction_t direction);
 
 #endif //MAPWORDS_HASHMAP_H
