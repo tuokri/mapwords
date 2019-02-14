@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <string.h>
 
 #include "hash.h"
 #include "hashmap.h"
@@ -18,6 +18,18 @@ int main()
 
     hashmap_t* map = NULL;
     map = hashmap_init(hash_sdbm, hash_crc32);
+
+    char* key1 = "koira";
+    hashmap_key_t hmk = {strlen(key1) + 1, key1};
+    int value = 666;
+
+    printf("added index=%ld\n", hashmap_add(map, &hmk, &value));
+    printf("index of \"koira\"=%ld\n", hashmap_find(map, &hmk));
+
+    void* v = map->buckets[hashmap_find(map, &hmk)]->value;
+    printf("%p\n", v);
+    printf("%d\n", *(int*)v);
+
     hashmap_free(map);
 
     return EXIT_SUCCESS;
