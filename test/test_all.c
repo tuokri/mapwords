@@ -5,6 +5,18 @@
 #include "hash.h"
 #include "hashmap.h"
 
+hashmap_t* map;
+
+void hashmap_setup(void)
+{
+    map = hashmap_init(hash_djb2, hash_sdbm);
+}
+
+void hashmap_teardown(void)
+{
+    hashmap_free(map);
+}
+
 START_TEST(test_hash_djb2)
 {
     hash_t h1 = hash_djb2("test1", 6);
@@ -36,13 +48,11 @@ START_TEST(test_hash_crc32)
 }
 END_TEST
 
-START_TEST(test_hashmap)
+START_TEST(test_hashmap_init)
 {
-    hashmap_t* map = hashmap_init(hash_sdbm, hash_crc32);
     ck_assert_ptr_ne(map, NULL);
     ck_assert_ptr_ne(map->buckets, NULL);
     ck_assert_uint_ne(map->capacity, 0);
-    hashmap_free(map);
 }
 END_TEST
 
@@ -71,8 +81,12 @@ Suite* make_hashmap_suite(void)
 
     s = suite_create("hashmap");
     tc_basic = tcase_create("basic");
+    tcase_add_checked_fixture(tc_basic, hashmap_setup, hashmap_teardown);
 
-    tcase_add_test(tc_basic, test_hashmap);
+    tcase_add_test(tc_basic, test_hashmap_init);
+    tcase_add_test(tc_basic, test_hashmap_add);
+    tcase_add_test(tc_basic, test_hashmap_find);
+    tcase_add_test(tc_basic, test_hashmap_remove);
 
     suite_add_tcase(s, tc_basic);
 
