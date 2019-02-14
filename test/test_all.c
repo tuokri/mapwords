@@ -56,6 +56,42 @@ START_TEST(test_hashmap_init)
 }
 END_TEST
 
+START_TEST(test_hashmap_add)
+{
+    char* keystr = "koira";
+    hashmap_key_t key = {strlen(keystr) + 1, keystr};
+    int value = 666;
+    ck_assert_int_ne(HASHMAP_KEY_NOT_FOUND, hashmap_add(map, &key, &value));
+}
+END_TEST
+
+START_TEST(test_hashmap_find)
+{
+    char* keystr = "koira";
+    hashmap_key_t key = {strlen(keystr) + 1, keystr};
+    int value = 666;
+    ck_assert_int_eq(HASHMAP_KEY_NOT_FOUND, hashmap_find(map, &key));
+
+    hashmap_add(map, &key, &value);
+    ck_assert_int_ne(HASHMAP_KEY_NOT_FOUND, hashmap_find(map, &key));
+}
+END_TEST
+
+START_TEST(test_hashmap_remove)
+{
+    char* keystr = "koira";
+    hashmap_key_t key = {strlen(keystr) + 1, keystr};
+    int value = 666;
+    ck_assert_int_eq(HASHMAP_KEY_NOT_FOUND, hashmap_find(map, &key));
+
+    hashmap_add(map, &key, &value);
+    ck_assert_int_ne(HASHMAP_KEY_NOT_FOUND, hashmap_find(map, &key));
+
+    hashmap_remove(map, &key);
+    ck_assert_int_eq(HASHMAP_KEY_NOT_FOUND, hashmap_find(map, &key));
+}
+END_TEST
+
 Suite* make_hash_suite(void)
 {
     Suite* s;
