@@ -43,6 +43,8 @@ START_TEST(test_hash_crc32)
     hash_t h4 = hash_default_crc32("test2", 6);
     ck_assert_uint_ne(h3, h4);
 
+    // Default CRC32 and SSE4.2 optimized implementations
+    // should return the same values.
     ck_assert_uint_eq(h1, h3);
     ck_assert_uint_eq(h2, h4);
 }
