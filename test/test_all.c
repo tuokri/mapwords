@@ -41,7 +41,7 @@ START_TEST(test_hashmap)
     hashmap_t* map = hashmap_init(hash_sdbm, hash_crc32);
     ck_assert_ptr_ne(map, NULL);
     ck_assert_ptr_ne(map->buckets, NULL);
-    ck_assert_uint_ne(map->size, 0);
+    ck_assert_uint_ne(map->capacity, 0);
     hashmap_free(map);
 }
 END_TEST
