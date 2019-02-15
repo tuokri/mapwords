@@ -6,10 +6,12 @@
 #include "hashmap.h"
 #include "search.h"
 
+#define CAPACITY_LOOKUP_SIZE 4096
+
 /**
  *
  */
-static const uint32_t hashmap_capacity_lookup[4096] =
+static const uint32_t hashmap_capacity_lookup[CAPACITY_LOOKUP_SIZE] =
 {
     2,     3,     5,     7,     11,    13,    17,    19,
     23,    29,    31,    37,    41,    43,    47,    53,
@@ -536,15 +538,16 @@ hashmap_init(
     hash_t (*hashf1)(char*, size_t),
     hash_t (*hashf2)(char*, size_t))
 {
-    uint32_t init_cap = hashmap_capacity_lookup[0];
-    printf("hashmap_init(): init_cap = %u\n", init_cap);
-
     hashmap_t* map = calloc(1, sizeof(hashmap_t));
     if(!map)
     {
         fprintf(stderr, "hashmap_init(): calloc(): map\n");
         return NULL;
     }
+
+    map->lookup_index = 0;
+    uint32_t init_cap = hashmap_capacity_lookup[map->lookup_index];
+    printf("hashmap_init(): init_cap = %u\n", init_cap);
 
     map->size = 0;
     map->capacity = 0;
@@ -573,7 +576,7 @@ hashmap_free(hashmap_t* map)
 }
 
 int64_t
-hashmap_add(hashmap_t* map, hashmap_key_t* key, void* value)
+hashmap_add(hashmap_t* map, hashmap_key_t* const key, void* const value)
 {
     uint32_t probe_index = 0;
 
@@ -592,16 +595,17 @@ hashmap_add(hashmap_t* map, hashmap_key_t* key, void* value)
     }
 
     // Resize and try to add key and value into hashmap.
-    // TODO: Get next capacity dynamically!
     // TODO: Resize based on load factor.
-    hashmap_resize(map, 50000);
+    uint32_t next_capacity = hashmap_get_prime(
+        map, hashmap_capacity_lookup, map->capacity * 2, hashmap_lookup_direction_forward);
+    hashmap_resize(map, next_capacity);
     hashmap_add(map, key, value);
 
     return HASHMAP_KEY_NOT_FOUND;
 }
 
 int64_t
-hashmap_find(hashmap_t* map, hashmap_key_t* key)
+hashmap_find(hashmap_t* map, hashmap_key_t* const key)
 {
     uint32_t probe_index = 0;
     hash_t j = hashmap_doublehash(map, key, probe_index);
@@ -626,7 +630,7 @@ hashmap_find(hashmap_t* map, hashmap_key_t* key)
 }
 
 int64_t
-hashmap_remove(hashmap_t* map, hashmap_key_t* key)
+hashmap_remove(hashmap_t* map, hashmap_key_t* const key)
 {
     int64_t i = hashmap_find(map, key);
     if(i != HASHMAP_KEY_NOT_FOUND)
@@ -721,15 +725,23 @@ hashmap_clear(hashmap_t* map)
 }
 
 uint32_t
-hashmap_get_prime(uint32_t* lookup, uint32_t target,
-    hashmap_lookup_direction_t direction)
+hashmap_get_prime(const hashmap_t* const map, const uint32_t* const lookup,
+    uint32_t target, hashmap_lookup_direction_t direction)
 {
     switch(direction)
     {
         case hashmap_lookup_direction_forward:
-            return 0;
+            return find_closest(
+                hashmap_capacity_lookup,
+                map->lookup_index + 1,
+                CAPACITY_LOOKUP_SIZE - 1,
+                target);
         case hashmap_lookup_direction_backward:
-            return 1;
+            return find_closest(
+                hashmap_capacity_lookup,
+                map->lookup_index - 1,
+                CAPACITY_LOOKUP_SIZE - 1,
+                target);
         default:
             perror("hashmap_get_prime(): unknown error");
             exit(1);

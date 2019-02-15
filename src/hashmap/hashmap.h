@@ -28,6 +28,7 @@ typedef struct hashmap_bucket
 
 typedef struct hashmap_map
 {
+    uint32_t lookup_index;
     uint32_t size;
     uint32_t capacity;
     hash_t (*hashf1)(char*, size_t);
@@ -66,7 +67,7 @@ void
 hashmap_clear(hashmap_t* map);
 
 uint32_t
-hashmap_get_prime(uint32_t* lookup, uint32_t target,
-    hashmap_lookup_direction_t direction);
+hashmap_get_prime(const hashmap_t* map, const uint32_t* lookup,
+    uint32_t target, hashmap_lookup_direction_t direction);
 
 #endif //MAPWORDS_HASHMAP_H
