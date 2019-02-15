@@ -1,26 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "search.h"
 
-int64_t binary_search(uint32_t* arr, uint32_t left, uint32_t right, uint32_t x)
+uint32_t
+find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t x)
 {
+    int64_t diff = INT64_MAX;
+    int64_t diff_right = 0;
+    int64_t diff_left = 0;
+    uint32_t closest = 0;
+
     while(left <= right)
     {
-        uint32_t middle = left + ((right - left) / 2);
+        uint32_t middle = (left + right) / 2;
+        printf("middle=%d\n", middle);
 
-        if (arr[middle] == x)
+        // Respect array boundaries.
+        if(middle + 1 < right)
         {
-            return middle;
+            diff_right = labs((int64_t)arr[middle + 1] - (int64_t)x);
+        }
+        if(middle > 0)
+        {
+            diff_left = labs((int64_t)arr[middle - 1] - (int64_t)x);
+        }
+
+        if(diff_left < diff)
+        {
+            diff = diff_left;
+            closest = arr[middle - 1];
+        }
+        if(diff_right < diff)
+        {
+            diff = diff_right;
+            closest = arr[middle + 1];
         }
 
         // If x is greater than middle, only search right half.
-        if (x > arr[middle])
+        if(x > arr[middle])
         {
             left = middle + 1;
         }
+        else if(x < arr[middle])
+        {
+            printf("x=%d\n", x);
+            printf("arr[middle]=%d\n", arr[middle]);
+            puts("decrement boundary");
+            right = middle - 1;
+        }
         else
         {
-            right = middle - 1;
+            return arr[middle];
         }
     }
 
-    return SEARCH_NOT_FOUND;
+    return closest;
 }
