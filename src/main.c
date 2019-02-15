@@ -11,7 +11,7 @@ main(int argc, char** argv)
     char* fname2;
     int opt;
     const char* short_opt = "f:s:";
-    struct option long_opt =
+    struct option long_opt[] =
     {
         {"first file",  required_argument, NULL, 'f'},
         {"second file", required_argument, NULL, 's'},
