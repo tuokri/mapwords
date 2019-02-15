@@ -36,8 +36,20 @@ END_TEST
 
 START_TEST(test_hash_crc32)
 {
-    hash_t h1 = hash_sse42_crc32("test1", 6);
-    hash_t h2 = hash_sse42_crc32("test2", 6);
+    __builtin_cpu_init();
+
+    hash_t h1;
+    hash_t h2;
+    if(__builtin_cpu_supports("sse4.2"))
+    {
+        h1 = hash_sse42_crc32("test1", 6);
+        h2 = hash_sse42_crc32("test2", 6);
+    }
+    else
+    {
+        h1 = hash_default_crc32("test1", 6);
+        h2 = hash_default_crc32("test2", 6);
+    }
     ck_assert_uint_ne(h1, h2);
 
     hash_t h3 = hash_default_crc32("test1", 6);
@@ -95,45 +107,45 @@ START_TEST(test_hashmap_remove)
 }
 END_TEST
 
-//START_TEST(test_find_closest_no_exact_match_middle)
-//{
-//    uint32_t arr[] = {0, 2, 7, 19};
-//    uint32_t closest = find_closest(arr, 0, 3, 6);
-//    ck_assert_uint_eq(closest, 7);
-//}
-//END_TEST
-//
-//START_TEST(test_find_closest_exact_match_middle)
-//{
-//    uint32_t arr[] = {0, 2, 7, 19};
-//    uint32_t closest = find_closest(arr, 0, 3, 7);
-//    ck_assert_uint_eq(closest, 7);
-//}
-//END_TEST
-//
-//START_TEST(test_find_closest_exact_match_left)
-//{
-//    uint32_t arr[] = {0, 2, 7, 19};
-//    uint32_t closest = find_closest(arr, 0, 3, 0);
-//    ck_assert_uint_eq(closest, 0);
-//}
-//END_TEST
-//
-//START_TEST(test_find_closest_exact_match_right)
-//{
-//    uint32_t arr[] = {0, 2, 7, 19};
-//    uint32_t closest = find_closest(arr, 0, 3, 19);
-//    ck_assert_uint_eq(closest, 19);
-//}
-//END_TEST
-//
-//START_TEST(test_find_closest_no_exact_match_left)
-//{
-//    uint32_t arr[] = {0, 2, 7, 19};
-//    uint32_t closest = find_closest(arr, 0, 3, 1);
-//    ck_assert_uint_eq(closest, 0);
-//}
-//END_TEST
+START_TEST(test_find_closest_no_exact_match_middle)
+{
+   uint32_t arr[] = {0, 2, 7, 19};
+   uint32_t closest = find_closest(arr, 0, 3, 6);
+   ck_assert_uint_eq(closest, 7);
+}
+END_TEST
+
+START_TEST(test_find_closest_exact_match_middle)
+{
+   uint32_t arr[] = {0, 2, 7, 19};
+   uint32_t closest = find_closest(arr, 0, 3, 7);
+   ck_assert_uint_eq(closest, 7);
+}
+END_TEST
+
+START_TEST(test_find_closest_exact_match_left)
+{
+   uint32_t arr[] = {0, 2, 7, 19};
+   uint32_t closest = find_closest(arr, 0, 3, 0);
+   ck_assert_uint_eq(closest, 0);
+}
+END_TEST
+
+START_TEST(test_find_closest_exact_match_right)
+{
+   uint32_t arr[] = {0, 2, 7, 19};
+   uint32_t closest = find_closest(arr, 0, 3, 19);
+   ck_assert_uint_eq(closest, 19);
+}
+END_TEST
+
+START_TEST(test_find_closest_no_exact_match_left)
+{
+   uint32_t arr[] = {0, 2, 7, 19};
+   uint32_t closest = find_closest(arr, 0, 3, 1);
+   ck_assert_uint_eq(closest, 0);
+}
+END_TEST
 
 START_TEST(test_find_closest_no_exact_match_right)
 {
@@ -186,11 +198,11 @@ Suite* make_search_suite(void)
     s = suite_create("search");
     tc_basic = tcase_create("basic");
 
-//    tcase_add_test(tc_basic, test_find_closest_no_exact_match_middle);
-//    tcase_add_test(tc_basic, test_find_closest_exact_match_middle);
-//    tcase_add_test(tc_basic, test_find_closest_exact_match_left);
-//    tcase_add_test(tc_basic, test_find_closest_exact_match_right);
-//    tcase_add_test(tc_basic, test_find_closest_no_exact_match_left);
+    tcase_add_test(tc_basic, test_find_closest_no_exact_match_middle);
+    tcase_add_test(tc_basic, test_find_closest_exact_match_middle);
+    tcase_add_test(tc_basic, test_find_closest_exact_match_left);
+    tcase_add_test(tc_basic, test_find_closest_exact_match_right);
+    tcase_add_test(tc_basic, test_find_closest_no_exact_match_left);
     tcase_add_test(tc_basic, test_find_closest_no_exact_match_right);
 
     suite_add_tcase(s, tc_basic);
