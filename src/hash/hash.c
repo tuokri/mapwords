@@ -146,7 +146,8 @@ hash_sse42_crc32(char* buffer, size_t size)
 hash_t
 hash_crc32(char* buffer, size_t size) __attribute__ ((ifunc("resolve_crc32")));
 
-hash_t (*resolve_crc32(void))(char* buffer, size_t size)
+hash_t
+(*resolve_crc32(void))(char*, size_t)
 {
     __builtin_cpu_init();
 
