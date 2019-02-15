@@ -4,6 +4,7 @@
 
 #include "hash.h"
 #include "hashmap.h"
+#include "search.h"
 
 hashmap_t* map;
 
@@ -94,6 +95,54 @@ START_TEST(test_hashmap_remove)
 }
 END_TEST
 
+//START_TEST(test_find_closest_no_exact_match_middle)
+//{
+//    uint32_t arr[] = {0, 2, 7, 19};
+//    uint32_t closest = find_closest(arr, 0, 3, 6);
+//    ck_assert_uint_eq(closest, 7);
+//}
+//END_TEST
+//
+//START_TEST(test_find_closest_exact_match_middle)
+//{
+//    uint32_t arr[] = {0, 2, 7, 19};
+//    uint32_t closest = find_closest(arr, 0, 3, 7);
+//    ck_assert_uint_eq(closest, 7);
+//}
+//END_TEST
+//
+//START_TEST(test_find_closest_exact_match_left)
+//{
+//    uint32_t arr[] = {0, 2, 7, 19};
+//    uint32_t closest = find_closest(arr, 0, 3, 0);
+//    ck_assert_uint_eq(closest, 0);
+//}
+//END_TEST
+//
+//START_TEST(test_find_closest_exact_match_right)
+//{
+//    uint32_t arr[] = {0, 2, 7, 19};
+//    uint32_t closest = find_closest(arr, 0, 3, 19);
+//    ck_assert_uint_eq(closest, 19);
+//}
+//END_TEST
+//
+//START_TEST(test_find_closest_no_exact_match_left)
+//{
+//    uint32_t arr[] = {0, 2, 7, 19};
+//    uint32_t closest = find_closest(arr, 0, 3, 1);
+//    ck_assert_uint_eq(closest, 0);
+//}
+//END_TEST
+
+START_TEST(test_find_closest_no_exact_match_right)
+{
+    uint32_t arr[] = {0, 2, 7, 19};
+    uint32_t closest = find_closest(arr, 0, 3, 18);
+    ck_assert_uint_eq(closest, 19);
+}
+END_TEST
+
 Suite* make_hash_suite(void)
 {
     Suite* s;
@@ -108,7 +157,6 @@ Suite* make_hash_suite(void)
     tcase_add_test(tc_basic, test_hash_crc32);
 
     suite_add_tcase(s, tc_basic);
-
     return s;
 }
 
@@ -127,7 +175,25 @@ Suite* make_hashmap_suite(void)
     tcase_add_test(tc_basic, test_hashmap_remove);
 
     suite_add_tcase(s, tc_basic);
+    return s;
+}
 
+Suite* make_search_suite(void)
+{
+    Suite* s;
+    TCase* tc_basic;
+
+    s = suite_create("search");
+    tc_basic = tcase_create("basic");
+
+//    tcase_add_test(tc_basic, test_find_closest_no_exact_match_middle);
+//    tcase_add_test(tc_basic, test_find_closest_exact_match_middle);
+//    tcase_add_test(tc_basic, test_find_closest_exact_match_left);
+//    tcase_add_test(tc_basic, test_find_closest_exact_match_right);
+//    tcase_add_test(tc_basic, test_find_closest_no_exact_match_left);
+    tcase_add_test(tc_basic, test_find_closest_no_exact_match_right);
+
+    suite_add_tcase(s, tc_basic);
     return s;
 }
 
@@ -138,6 +204,7 @@ int main(void)
 
     sr = srunner_create(make_hash_suite());
     srunner_add_suite(sr, make_hashmap_suite());
+    srunner_add_suite(sr, make_search_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

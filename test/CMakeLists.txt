@@ -13,6 +13,7 @@ include_directories(
     .
     ../src/hash
     ../src/hashmap
+    ../src/search
 )
 
 add_executable(
@@ -20,6 +21,7 @@ add_executable(
     test_all.c
     ../src/hash/hash.c
     ../src/hashmap/hashmap.c
+    ../src/search/search.c
 )
 
 target_link_libraries(test_all ${LIBS})
