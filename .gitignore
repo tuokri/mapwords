@@ -6,6 +6,8 @@ venv
 
 # CMake
 cmake-build-debug
+CMakeCache.txt
+CMakeFiles/
 
 # Prerequisites
 *.d

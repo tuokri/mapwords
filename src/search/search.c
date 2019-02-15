@@ -17,7 +17,7 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
         printf("middle=%d\n", middle);
 
         // Respect array boundaries.
-        if(middle + 1 < right)
+        if(middle + 1 <= right)
         {
             diff_right = labs((int64_t)arr[middle + 1] - (int64_t)x);
         }
@@ -42,11 +42,9 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
         {
             left = middle + 1;
         }
+        // Likewise, but for left half.
         else if(x < arr[middle])
         {
-            printf("x=%d\n", x);
-            printf("arr[middle]=%d\n", arr[middle]);
-            puts("decrement boundary");
             right = middle - 1;
         }
         else
