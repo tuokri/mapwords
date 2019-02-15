@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <getopt.h>
 
 #include "hash.h"
@@ -31,13 +32,15 @@ main(int argc, char** argv)
             case 's':
                 fname2 = optarg;
                 break;
-            case ':'
+            case ':':
             case '?':
                 return -2;
             default:
                 return -2;
         }
     }
+
+    printf("f1=%s f2=%s\n", fname1, fname2);
 
     return EXIT_SUCCESS;
 }
