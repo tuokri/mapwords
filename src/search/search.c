@@ -14,7 +14,6 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
     while(left <= right)
     {
         uint32_t middle = (left + right) / 2;
-        printf("middle=%d\n", middle);
 
         // Respect array boundaries.
         if(middle + 1 <= right)

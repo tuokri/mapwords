@@ -1,36 +1,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "hash.h"
 #include "hashmap.h"
 
-int main()
+int
+main(int argc, char** argv)
 {
-    printf("%u\n", hash_sdbm("oWo", 4));
-    printf("%u\n", hash_sdbm("wubba lubba dub dub", 20));
-    printf("%u\n", hash_djb2("oWo", 4));
-    printf("%u\n", hash_djb2("wubba lubba dub dub", 20));
-    printf("%u\n", hash_sse42_crc32("oWo", 4));
-    printf("%u\n", hash_sse42_crc32("wubba lubba dub dub", 20));
-    printf("%u\n", hash_default_crc32("oWo", 4));
-    printf("%u\n", hash_default_crc32("wubba lubba dub dub", 20));
+    char* fname1;
+    char* fname2;
+    int opt;
+    const char* short_opt = "f:s:";
+    struct option long_opt =
+    {
+        {"first file",  required_argument, NULL, 'f'},
+        {"second file", required_argument, NULL, 's'},
+        {NULL,          0,                 NULL, 0  }
+    };
 
-    hashmap_t* map = NULL;
-    map = hashmap_init(hash_sdbm, hash_crc32);
-
-    char* key1 = "koira";
-    hashmap_key_t hmk = {strlen(key1) + 1, key1};
-    int value = 666;
-
-    printf("added index=%ld\n", hashmap_add(map, &hmk, &value));
-    printf("index of \"koira\"=%ld\n", hashmap_find(map, &hmk));
-
-    void* v = map->buckets[hashmap_find(map, &hmk)]->value;
-    printf("%p\n", v);
-    printf("%d\n", *(int*)v);
-
-    hashmap_free(map);
+    while((opt = getopt_long(argc, argv, short_opt, long_opt, NULL)) != -1)
+    {
+        switch(opt)
+        {
+            case -1:
+            case 0:
+                break;
+            case 'f':
+                fname1 = optarg;
+                break;
+            case 's':
+                fname2 = optarg;
+                break;
+            case ':'
+            case '?':
+                return -2;
+            default:
+                return -2;
+        }
+    }
 
     return EXIT_SUCCESS;
 }
