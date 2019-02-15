@@ -1,5 +1,5 @@
-#ifndef MAPWORDS_UTIL_H
-#define MAPWORDS_UTIL_H
+#ifndef MAPWORDS_SEARCH_H
+#define MAPWORDS_SEARCH_H
 
 #include <stdint.h>
 
@@ -14,4 +14,4 @@
 uint32_t
 find_closest(const uint32_t* arr, uint32_t left, uint32_t right, uint32_t x);
 
-#endif //MAPWORDS_UTIL_H
+#endif //MAPWORDS_SEARCH_H
