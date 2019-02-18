@@ -528,9 +528,60 @@ hash_t
 hashmap_doublehash(hashmap_t* map, hashmap_key_t* key,
     uint32_t probe_index)
 {
+    // puts("in doublehash");
+    // printf("key=%p\n", (void*)key);
     return (
         map->hashf1(key->key, key->size) + (probe_index * map->hashf2(key->key, key->size))
         ) % map->capacity;
+}
+
+hashmap_t*
+hashmap_init_cap(
+    hash_t (*hashf1)(char* buffer, size_t size),
+    hash_t (*hashf2)(char* buffer, size_t size),
+    uint32_t init_capacity)
+{
+    hashmap_t* map = calloc(1, sizeof(hashmap_t));
+    if(!map)
+    {
+        fprintf(stderr, "hashmap_init_cap(): calloc(): map\n");
+        return NULL;
+    }
+
+    // printf("hashmap_init_cap(): init_capacity = %u\n", init_capacity);
+
+    map->size = 0;
+    map->lookup_index = 0;
+    map->capacity = init_capacity;
+    map->hashf1 = hashf1;
+    map->hashf2 = hashf2;
+
+    map->buckets = calloc(init_capacity, sizeof(hashmap_bucket_t));
+    if(!map->buckets)
+    {
+        fprintf(stderr, "hashmap_init_cap(): calloc(): map->buckets\n");
+        return NULL;
+    }
+    for(uint32_t i = 0; i < init_capacity; ++i)
+    {
+        //map->buckets[i] = malloc(sizeof(hashmap_bucket_t));
+        //if(!map->buckets[i])
+        //{
+        //    fprintf(
+        //        stderr, "hashmap_init_cap(): malloc(): map->buckets[%u]\n", i);
+        //    return NULL;
+        //}
+        map->buckets[i].status = hashmap_bucket_status_free;
+    }
+
+    // if(!hashmap_resize(map, init_capacity))
+    // {
+    //     fprintf(stderr, "hashmap_init_cap(): hashmap_resize()\n");
+    //     hashmap_free(map);
+    //     return NULL;
+    // }
+
+    return map;
 }
 
 hashmap_t*
@@ -538,31 +589,7 @@ hashmap_init(
     hash_t (*hashf1)(char*, size_t),
     hash_t (*hashf2)(char*, size_t))
 {
-    hashmap_t* map = calloc(1, sizeof(hashmap_t));
-    if(!map)
-    {
-        fprintf(stderr, "hashmap_init(): calloc(): map\n");
-        return NULL;
-    }
-
-    map->lookup_index = 0;
-    uint32_t init_cap = hashmap_capacity_lookup[map->lookup_index];
-    printf("hashmap_init(): init_cap = %u\n", init_cap);
-
-    map->size = 0;
-    map->capacity = 0;
-    map->buckets = NULL;
-    map->hashf1 = hashf1;
-    map->hashf2 = hashf2;
-
-    if(!hashmap_resize(map, init_cap))
-    {
-        fprintf(stderr, "hashmap_init(): hashmap_resize()\n");
-        hashmap_free(map);
-        return NULL;
-    }
-
-    return map;
+    return hashmap_init_cap(hashf1, hashf2, hashmap_capacity_lookup[0]);
 }
 
 void
@@ -573,35 +600,41 @@ hashmap_free(hashmap_t* map)
     map->buckets = NULL;
     map->capacity = 0;
     free(map);
+    map = NULL;
 }
 
 int64_t
 hashmap_add(hashmap_t* map, hashmap_key_t* const key, void* const value)
 {
+    // puts("hashmap_add()");
     uint32_t probe_index = 0;
 
     while(probe_index < map->capacity)
     {
+        // puts("hashmap_add(): hashing...");
         hash_t j = hashmap_doublehash(map, key, probe_index);
-        if(map->buckets[probe_index] == NULL)
+        // printf("hashmap_add(): j=%u\n", j);
+        if(map->buckets[j].status == hashmap_bucket_status_free)
         {
-            map->buckets[j] = calloc(1, sizeof(hashmap_bucket_t));
-            map->buckets[j]->key = key;
-            map->buckets[j]->value = value;
+            map->buckets[j].status = hashmap_bucket_status_used;
+            map->buckets[j].key = key;
+            map->buckets[j].value = value;
             map->size++;
             return j;
         }
         ++probe_index;
     }
 
+    puts("map full");
     // Resize and try to add key and value into hashmap.
     // TODO: Resize based on load factor.
-    uint32_t next_capacity = hashmap_get_prime(
-        map, hashmap_capacity_lookup, map->capacity * 2, hashmap_lookup_direction_forward);
+    map->lookup_index = hashmap_lookup_prime_index(
+        map, hashmap_capacity_lookup, map->capacity * 2);
+    uint32_t next_capacity = hashmap_capacity_lookup[map->lookup_index];
+    printf("hashmap_add(): next_capacity=%u\n", next_capacity);
     hashmap_resize(map, next_capacity);
-    hashmap_add(map, key, value);
 
-    return HASHMAP_KEY_NOT_FOUND;
+    return hashmap_add(map, key, value);
 }
 
 int64_t
@@ -612,9 +645,9 @@ hashmap_find(hashmap_t* map, hashmap_key_t* const key)
 
     while(probe_index < map->capacity)
     {
-        if(map->buckets[j] != NULL)
+        if(map->buckets[j].status == hashmap_bucket_status_used)
         {
-            if(strcmp(map->buckets[j]->key->key, key->key) == 0)
+            if(strcmp(map->buckets[j].key->key, key->key) == 0)
             {
                 return j;
             }
@@ -635,8 +668,7 @@ hashmap_remove(hashmap_t* map, hashmap_key_t* const key)
     int64_t i = hashmap_find(map, key);
     if(i != HASHMAP_KEY_NOT_FOUND)
     {
-        free(map->buckets[i]);
-        map->buckets[i] = NULL;
+        map->buckets[i].status = hashmap_bucket_status_deleted;
         return i;
     }
     return HASHMAP_KEY_NOT_FOUND;
@@ -645,63 +677,65 @@ hashmap_remove(hashmap_t* map, hashmap_key_t* const key)
 bool
 hashmap_resize(hashmap_t* map, uint32_t new_capacity)
 {
+    // puts("before rehash");
+    // for(uint32_t i = 0; i < map->capacity; ++i)
+    // {
+    //     if(map->buckets[i].status == hashmap_bucket_status_used)
+    //     {
+    //         //printf("i=%u key=%s\n", i, map->buckets[i].key->key);    
+    //     }
+    // }
+    // puts("*_*");
+
     if(new_capacity == map->capacity)
     {
         fprintf(stderr, "hashmap_resize(): new_capacity == map->capacity");
+        fprintf(stderr, " (%u) = (%u)\n", new_capacity, map->capacity);
         return false;
     }
 
-    hashmap_bucket_t** new_buckets = calloc(new_capacity, sizeof(hashmap_bucket_t*));
-    if(!new_buckets)
-    {
-        fprintf(stderr, "hashmap_resize(): calloc(): new_buckets");
-        return false;
-    }
+    hashmap_t* new_map = hashmap_init_cap(map->hashf1, map->hashf2, new_capacity);
+    printf("old map lookup_index=%u\n", map->lookup_index);
+    new_map->lookup_index = map->lookup_index;
+    printf("new map lookup_index=%u\n", new_map->lookup_index);
 
-    bool rehash_result;
-    if(new_capacity > map->capacity)
-    {
-        memcpy(new_buckets, map->buckets, map->capacity);
-        free(map->buckets);
-        map->buckets = new_buckets;
-        rehash_result = hashmap_rehash(map, new_capacity);
-    }
-    else
-    {
-        rehash_result = hashmap_rehash(map, new_capacity);
-        memcpy(new_buckets, map->buckets, new_capacity);
-        free(map->buckets);
-        map->buckets = new_buckets;
-    }
+    bool rehash_result = false;
+    rehash_result = hashmap_rehash(map, new_map);
+    free(map);
+    map = new_map;
 
     // TODO: Handle this error case?
     if(!rehash_result)
     {
-        fprintf(stderr, "hashmap_resize(): error rehashing");
+        fprintf(stderr, "hashmap_resize(): error rehashing\n");
     }
+
+    // puts("after rehash:");
+    // //printf("map->capacity=%u\n", map->capacity);
+    // for(uint32_t i = 0; i < map->capacity; ++i)
+    // {
+    //     if(map->buckets[i].status == hashmap_bucket_status_used)
+    //     {
+    //         //printf("i=%u key=%s\n", i, map->buckets[i].key->key);    
+    //     }
+    // }
+    // puts("**");
 
     return true;
 }
 
 bool
-hashmap_rehash(hashmap_t* map, uint32_t new_capacity)
+hashmap_rehash(hashmap_t* map, hashmap_t* new_map)
 {
-    if(new_capacity == map->capacity)
-    {
-        fprintf(stderr, "hashmap_rehash(): new_capacity == map->capacity");
-        return false;
-    }
-
-    map->capacity = new_capacity;
-
+    printf("rehashing with map->capacity=%u\n", map->capacity);
+    printf("rehashing with new_map->capacity=%u\n", new_map->capacity);
     for(uint32_t i = 0; i < map->capacity; ++i)
     {
-        hashmap_bucket_t* bucket;
-        if((bucket = map->buckets[i]) != NULL)
+        if(map->buckets[i].status == hashmap_bucket_status_used)
         {
-            free(map->buckets[i]);
-            map->buckets[i] = NULL;
-            hashmap_add(map, bucket->key, bucket->value);
+            //printf("rehashing i=%u\n", i);
+            hashmap_add(new_map, 
+                map->buckets[i].key, map->buckets[i].value);
         }
     }
 
@@ -713,38 +747,39 @@ hashmap_clear(hashmap_t* map)
 {
     for(uint32_t i = 0; i < map->capacity; ++i)
     {
-        if(map->buckets[i] != NULL)
-        {
-            free(map->buckets[i]);
-            map->buckets[i] = NULL;
-        }
+        map->buckets[i].status = hashmap_bucket_status_free; 
     }
-
-    memset(map->buckets, 0, map->capacity * sizeof(hashmap_bucket_t*));
     map->size = 0;
 }
 
 uint32_t
-hashmap_get_prime(const hashmap_t* const map, const uint32_t* const lookup,
-    uint32_t target, hashmap_lookup_direction_t direction)
+hashmap_lookup_prime_index(hashmap_t* const map, const uint32_t* const lookup,
+    uint32_t target)
 {
-    switch(direction)
+    printf("map->capacity=%u\n", map->capacity);
+    printf("target=%u\n", target);
+    printf("map->lookup_index=%u\n", map->lookup_index);
+    puts("***");
+
+    if(target > map->capacity)
     {
-        case hashmap_lookup_direction_forward:
-            return find_closest(
-                hashmap_capacity_lookup,
-                map->lookup_index + 1,
-                CAPACITY_LOOKUP_SIZE - 1,
-                target);
-        case hashmap_lookup_direction_backward:
-            return find_closest(
-                hashmap_capacity_lookup,
-                map->lookup_index - 1,
-                CAPACITY_LOOKUP_SIZE - 1,
-                target);
-        default:
-            perror("hashmap_get_prime(): unknown error");
-            exit(1);
-            return 0; // Suppress -Werror=return-type
+        return find_closest(
+            hashmap_capacity_lookup,
+            map->lookup_index + 1,
+            CAPACITY_LOOKUP_SIZE - 1,
+            target);
+    }
+    else if(target < map->capacity)
+    {
+        return find_closest(
+            hashmap_capacity_lookup,
+            map->lookup_index - 1,
+            CAPACITY_LOOKUP_SIZE - 1,
+            target);
+    }
+    else
+    {
+        puts("else");
+        return map->lookup_index;
     }
 }

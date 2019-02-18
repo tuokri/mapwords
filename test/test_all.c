@@ -111,7 +111,7 @@ START_TEST(test_find_closest_no_exact_match_middle)
 {
    uint32_t arr[] = {0, 2, 7, 19};
    uint32_t closest = find_closest(arr, 0, 3, 6);
-   ck_assert_uint_eq(closest, 7);
+   ck_assert_uint_eq(closest, 2);
 }
 END_TEST
 
@@ -119,7 +119,7 @@ START_TEST(test_find_closest_exact_match_middle)
 {
    uint32_t arr[] = {0, 2, 7, 19};
    uint32_t closest = find_closest(arr, 0, 3, 7);
-   ck_assert_uint_eq(closest, 7);
+   ck_assert_uint_eq(closest, 2);
 }
 END_TEST
 
@@ -135,7 +135,7 @@ START_TEST(test_find_closest_exact_match_right)
 {
    uint32_t arr[] = {0, 2, 7, 19};
    uint32_t closest = find_closest(arr, 0, 3, 19);
-   ck_assert_uint_eq(closest, 19);
+   ck_assert_uint_eq(closest, 3);
 }
 END_TEST
 
@@ -151,7 +151,7 @@ START_TEST(test_find_closest_no_exact_match_right)
 {
     uint32_t arr[] = {0, 2, 7, 19};
     uint32_t closest = find_closest(arr, 0, 3, 18);
-    ck_assert_uint_eq(closest, 19);
+    ck_assert_uint_eq(closest, 3);
 }
 END_TEST
 

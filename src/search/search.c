@@ -9,7 +9,7 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
     int64_t diff = INT64_MAX;
     int64_t diff_right = 0;
     int64_t diff_left = 0;
-    uint32_t closest = 0;
+    uint32_t closest_index = 0;
 
     while(left <= right)
     {
@@ -28,12 +28,12 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
         if(diff_left < diff)
         {
             diff = diff_left;
-            closest = arr[middle - 1];
+            closest_index = middle - 1;
         }
         if(diff_right < diff)
         {
             diff = diff_right;
-            closest = arr[middle + 1];
+            closest_index = middle + 1;
         }
 
         // If x is greater than middle, only search right half.
@@ -48,9 +48,11 @@ find_closest(const uint32_t* const arr, uint32_t left, uint32_t right, uint32_t 
         }
         else
         {
-            return arr[middle];
+        	printf("middle_closest=%u\n", middle);
+            return middle;
         }
     }
 
-    return closest;
+    printf("closest=%u\n", closest_index);
+    return closest_index;
 }
