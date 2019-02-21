@@ -1,6 +1,10 @@
 #ifndef MAPWORDS_HASH_H
 #define MAPWORDS_HASH_H
 
+#ifdef __x86_64
+#include <x86intrin.h>
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
