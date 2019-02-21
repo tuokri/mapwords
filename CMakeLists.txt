@@ -14,4 +14,10 @@ endif()
 add_compile_options(-Wall -Werror -pedantic)
 
 add_subdirectory(src)
-add_subdirectory(test)
+
+find_package(Check)
+if(Check_FOUND)
+    add_subdirectory(test)
+else()
+    message("Check not found, install Check Testing Framework to be able to build tests.")
+endif()
