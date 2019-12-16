@@ -3,7 +3,7 @@
 
 #include "util.h"
 
-// Used in constructing a string literal with the preprocessor.
+// Construct a string literal with the preprocessor.
 #define STR_(X)
 #define STR(X) STR_(X)
 

@@ -182,3 +182,27 @@ hash_t
 
     return hash_default_crc32;
 }
+
+hash_t (*get_hashf(const char* hashf_name))(const char*)
+{
+    if (strcmp(hashf_name, "hash_crc32") == 0)
+    {
+        return hash_crc32;
+    }
+    else if (strcmp(hashf_name, "hash_djb2") == 0)
+    {
+        return hash_djb2;
+    }
+    else if (strcmp(hashf_name, "hash_java") == 0)
+    {
+        return hash_java;
+    }
+    else if (strcmp(hashf_name, "hash_sdbm") == 0)
+    {
+        return hash_sdbm;
+    }
+    else
+    {
+        return NULL;
+    }
+}

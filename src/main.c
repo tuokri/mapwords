@@ -2,23 +2,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <time.h>
 
 #include "hash.h"
 #include "hashmap.h"
 #include "util.h"
 
-// Assume generous 511 (+'\0') maximum word length.
+// Assume generous 511 (+ '\0') maximum word length.
 #define WORD_SIZE 512
 
 int
 main(int argc, char** argv)
 {
+    struct timespec ts_start;
+    timespec_get(&ts_start, TIME_UTC);
+
+    hash_t (*hashf)(const char*) = NULL;
+    char hashf_name[HASHF_NAME_MAX_LENGTH] = {'\0'};
+
     char* fname1 = NULL;
     int opt;
-    const char* short_opt = "f:";
+    const char* short_opt = "f:h:";
     struct option long_opt[] =
         {
             {"file", required_argument, NULL, 'f'},
+            {"hashf", required_argument, NULL, 'h'},
             {NULL, 0,                   NULL, 0}
         };
 
@@ -31,6 +39,9 @@ main(int argc, char** argv)
                 break;
             case 'f':
                 fname1 = optarg;
+                break;
+            case 'h':
+                strcpy(hashf_name, optarg);
                 break;
             case ':':
             case '?':
@@ -50,26 +61,42 @@ main(int argc, char** argv)
 
     char word_buffer[WORD_SIZE] = {'\0'};
     uint64_t wordcount = 0;
+    uint64_t charcount = 0;
 
-    hashmap_map_t* map = hashmap_init(hash_java, hash_djb2);
+    hashf = get_hashf(hashf_name);
+    if (hashf == NULL)
+    {
+        hashf = hash_crc32;
+    }
+
+    hashmap_map_t* map = hashmap_init(hashf);
     if (!map)
     {
         printf("error initializing map in main()\n");
         return EXIT_FAILURE;
     }
 
+    int64_t* value = NULL;
     int64_t status;
     while (read_next_word(f1, word_buffer, WORD_SIZE) == 1)
     {
         str_tolower(word_buffer);
         wordcount++;
+        charcount += strlen(word_buffer);
 
-//        int64_t* value = calloc(1, sizeof(int64_t));
-//        status = hashmap_get(map, word_buffer, value);
-//        if (status != HASHMAP_KEY_ALREADY_IN_MAP)
-//        {
-//            printf("%ld\n", *value);
-//        }
+        value = calloc(1, sizeof(int64_t));
+        if (!value)
+        {
+            printf("error allocating memory in main()\n");
+            return EXIT_FAILURE;
+        }
+
+        status = hashmap_get(map, word_buffer, value);
+        if (status == HASHMAP_OK)
+        {
+            // printf("%s->%ld\n", word_buffer, *value);
+        }
+        free(value);
 
         status = hashmap_add(map, word_buffer, 0);
         if (status != HASHMAP_OK)
@@ -92,14 +119,24 @@ main(int argc, char** argv)
                     return EXIT_FAILURE;
             }
         }
-
-        //printf("map->size=%lu\n", map->size);
     }
 
-    printf("map->size=%lu\n", map->size);
+    struct timespec ts_stop;
+    timespec_get(&ts_stop, TIME_UTC);
+
+    char buffer[100];
+    printf("stats: hashf=%s\n", hashf_name);
+    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_start.tv_sec));
+    printf("stats: start_time=%s.%.9ld\n", buffer, ts_start.tv_nsec);
+    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_stop.tv_sec));
+    printf("stats: stop_time=%s.%.9ld\n", buffer, ts_stop.tv_nsec);
+
+    printf("stats: map_size=%lu\n", map->size);
+    printf("stats: collisions=%lu\n", map->collisions);
+    printf("stats: wordcount=%lu\n", wordcount);
+    printf("stats: charcount=%lu\n", charcount);
 
     hashmap_free(map);
     fclose(f1);
-    // fclose(f2);
     return EXIT_SUCCESS;
 }
