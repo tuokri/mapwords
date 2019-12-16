@@ -9,7 +9,6 @@
 // where modulo is replaced with HASH & (CAPACITY - 1) is used.
 #define HASHMAP_INITIAL_CAPACITY 16
 #define RESIZE_FACTOR 0.75
-#define PRIME 7
 
 hash_t
 hashmap_hash1(const hashmap_map_t* const map, char* key)
@@ -20,7 +19,7 @@ hashmap_hash1(const hashmap_map_t* const map, char* key)
 hash_t
 hashmap_hash2(const hashmap_map_t* const map, char* key)
 {
-    return PRIME - (map->hashf2(key) % PRIME);
+    return map->hashf2(key) % (map->capacity - 1) + 1;
 }
 
 hashmap_map_t*
@@ -80,7 +79,10 @@ hashmap_free_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
     for (uint64_t i = 0; i < capacity; i++)
     {
         hashmap_bucket_t bucket = buckets[i];
-        free(bucket.key);
+        if (bucket.key)
+        {
+            free(bucket.key);
+        }
     }
     free(buckets);
 }
@@ -108,6 +110,7 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
         int64_t status = hashmap_rehash(map, new_capacity);
         if (status != HASHMAP_OK)
         {
+            printf("hashmap_add(): error: hashmap_rehash() status=%lu\n", status);
             return status;
         }
     }
@@ -127,7 +130,9 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
         uint64_t i = 1;
         while (true)
         {
-            uint64_t new_index = (index + (i * index2)) & (map->capacity - 1);
+            uint64_t new_index = (index + (i * index2)) % map->capacity;
+            printf("i=%lu, index1=%lu, capacity=%lu, index2=%lu, new_index=%lu\n",
+                   i, index, map->capacity, index2, new_index);
 
             if (map->buckets[new_index].in_use)
             {
@@ -135,15 +140,15 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
                 {
                     return HASHMAP_KEY_ALREADY_IN_MAP;
                 }
-
-                index = new_index;
-                break;
             }
             ++i;
         }
     }
 
-    free(map->buckets[index].key);
+    if (map->buckets[index].key)
+    {
+        free(map->buckets[index].key);
+    }
     map->buckets[index].key = calloc(strlen(key), sizeof(char));
     if (!map->buckets[index].key)
     {
@@ -175,7 +180,7 @@ hashmap_get(const hashmap_map_t* map, char* key, int64_t* out)
     {
         uint64_t new_index = (index + (i * index2)) & (map->capacity - 1);
 
-        if (!map->buckets[new_index].in_use)
+        if (map->buckets[new_index].in_use)
         {
             if (strcmp(key, bucket.key) == 0)
             {
@@ -240,6 +245,28 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
             int64_t status = hashmap_add(map, old_bucket.key, old_bucket.value);
             if (status != HASHMAP_OK)
             {
+                printf("hashmap_rehash(): error: hashmap_add() status=%lu on key=%s, value=%ld\n",
+                       status, old_bucket.key, old_bucket.value);
+
+                for (uint64_t x = 0; x < old_capacity; ++x)
+                {
+                    hashmap_bucket_t bucket = old_buckets[x];
+                    if (bucket.in_use)
+                    {
+                        printf("old_map (%lu): [%s->%lu]\n", x, bucket.key, bucket.value);
+                    }
+                }
+
+                for (uint64_t z = 0; z < new_capacity; ++z)
+                {
+                    hashmap_bucket_t bucket = new_buckets[z];
+                    if (bucket.in_use)
+                    {
+                        printf("new_map (%lu): [%s->%lu]\n", z, bucket.key, bucket.value);
+                    }
+                }
+
+                hashmap_free_buckets(old_buckets, old_capacity);
                 return status;
             }
         }

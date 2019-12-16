@@ -8,7 +8,7 @@
 #include "util.h"
 
 // Assume generous 511 (+'\0') maximum word length.
-#define WORD_SIZE 511
+#define WORD_SIZE 512
 
 int
 main(int argc, char** argv)
@@ -48,7 +48,7 @@ main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    char word_buffer[WORD_SIZE + 1] = {'\0'};
+    char word_buffer[WORD_SIZE] = {'\0'};
     uint64_t wordcount = 0;
 
     hashmap_map_t* map = hashmap_init(hash_crc32, hash_djb2);
@@ -58,12 +58,20 @@ main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    int64_t status;
     while (read_next_word(f1, word_buffer, WORD_SIZE) == 1)
     {
         str_tolower(word_buffer);
         wordcount++;
 
-        int64_t status = hashmap_add(map, word_buffer, 5);
+//        int64_t* value = calloc(1, sizeof(int64_t));
+//        status = hashmap_get(map, word_buffer, value);
+//        if (status != HASHMAP_KEY_ALREADY_IN_MAP)
+//        {
+//            printf("%ld\n", *value);
+//        }
+
+        status = hashmap_add(map, word_buffer, 0);
         if (status != HASHMAP_OK)
         {
             switch (status)
