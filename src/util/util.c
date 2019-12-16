@@ -18,9 +18,9 @@ read_next_word(FILE* f, char* buf, int len)
 void
 str_tolower(char* str)
 {
-    while(*str)
+    while (*str)
     {
-        *str = tolower((unsigned char)*str);
+        *str = (char) tolower(*str);
         str++;
     }
 }

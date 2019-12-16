@@ -6,7 +6,7 @@
 #include "hashmap.h"
 #include "search.h"
 
-hashmap_t* map;
+hashmap_map_t* map;
 
 void hashmap_setup(void)
 {
