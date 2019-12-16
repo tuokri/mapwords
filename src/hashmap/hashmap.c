@@ -12,21 +12,21 @@
 #define PRIME 7
 
 hash_t
-hashmap_hash1(const hashmap_map_t* const map, hashmap_key_t key)
+hashmap_hash1(const hashmap_map_t* const map, char* key)
 {
-    return map->hashf1(key.key, key.size) & (map->capacity - 1);
+    return map->hashf1(key) & (map->capacity - 1);
 }
 
 hash_t
-hashmap_hash2(const hashmap_map_t* const map, hashmap_key_t key)
+hashmap_hash2(const hashmap_map_t* const map, char* key)
 {
-    return PRIME - (map->hashf2(key.key, key.size) % PRIME);
+    return PRIME - (map->hashf2(key) % PRIME);
 }
 
 hashmap_map_t*
 hashmap_init_cap(
-    hash_t (* hashf1)(const char*, size_t),
-    hash_t (* hashf2)(const char*, size_t),
+    hash_t (* hashf1)(const char*),
+    hash_t (* hashf2)(const char*),
     uint64_t capacity)
 {
     if (hashf1 == NULL)
@@ -41,10 +41,10 @@ hashmap_init_cap(
         return NULL;
     }
 
-    hashmap_map_t* map = malloc(sizeof(hashmap_map_t));
+    hashmap_map_t* map = calloc(1, sizeof(hashmap_map_t));
     if (!map)
     {
-        fprintf(stderr, "hashmap_init_cap(): error: malloc(): map\n");
+        fprintf(stderr, "hashmap_init_cap(): error: calloc(): map\n");
         return NULL;
     }
 
@@ -68,10 +68,21 @@ hashmap_init_cap(
 
 hashmap_map_t*
 hashmap_init(
-    hash_t (* hashf1)(const char*, size_t),
-    hash_t (* hashf2)(const char*, size_t))
+    hash_t (* hashf1)(const char*),
+    hash_t (* hashf2)(const char*))
 {
     return hashmap_init_cap(hashf1, hashf2, HASHMAP_INITIAL_CAPACITY);
+}
+
+void
+hashmap_free_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
+{
+    for (uint64_t i = 0; i < capacity; i++)
+    {
+        hashmap_bucket_t bucket = buckets[i];
+        free(bucket.key);
+    }
+    free(buckets);
 }
 
 void
@@ -81,13 +92,13 @@ hashmap_free(hashmap_map_t* map)
     {
         map->hashf1 = NULL;
         map->hashf2 = NULL;
-        free(map->buckets);
+        hashmap_free_buckets(map->buckets, map->capacity);
         free(map);
     }
 }
 
 int64_t
-hashmap_add(hashmap_map_t* map, hashmap_key_t key, int64_t value)
+hashmap_add(hashmap_map_t* map, char* key, int64_t value)
 {
     if (((float) map->size / (float) map->capacity) >= RESIZE_FACTOR)
     {
@@ -104,12 +115,12 @@ hashmap_add(hashmap_map_t* map, hashmap_key_t key, int64_t value)
     uint64_t index = hashmap_hash1(map, key);
     if (map->buckets[index].in_use)
     {
-        if (strcmp(map->buckets[index].key.key, key.key) == 0)
+        if (strcmp(map->buckets[index].key, key) == 0)
         {
             return HASHMAP_KEY_ALREADY_IN_MAP;
         }
 
-        printf("hashmap_add(): collision on index: %lu\n", index);
+        // printf("hashmap_add(): collision on index: %lu\n", index);
 
         uint64_t index2 = hashmap_hash2(map, key);
 
@@ -118,41 +129,42 @@ hashmap_add(hashmap_map_t* map, hashmap_key_t key, int64_t value)
         {
             uint64_t new_index = (index + (i * index2)) & (map->capacity - 1);
 
-            if (!map->buckets[new_index].in_use)
+            if (map->buckets[new_index].in_use)
             {
-                if (strcmp(map->buckets[index].key.key, key.key) == 0)
+                if (strcmp(map->buckets[index].key, key) == 0)
                 {
                     return HASHMAP_KEY_ALREADY_IN_MAP;
                 }
 
-                map->buckets[new_index].key = key;
-                map->buckets[new_index].value = value;
-                map->buckets[new_index].in_use = true;
-                map->size++;
-                return HASHMAP_OK;
+                index = new_index;
+                break;
             }
             ++i;
         }
     }
-    else
+
+    free(map->buckets[index].key);
+    map->buckets[index].key = calloc(strlen(key), sizeof(char));
+    if (!map->buckets[index].key)
     {
-        map->buckets[index].key = key;
-        map->buckets[index].value = value;
-        map->buckets[index].in_use = true;
-        map->size++;
-        return HASHMAP_OK;
+        return HASHMAP_ERROR;
     }
+    strcpy(map->buckets[index].key, key);
+    map->buckets[index].value = value;
+    map->buckets[index].in_use = true;
+    map->size++;
+    return HASHMAP_OK;
 }
 
 int64_t
-hashmap_get(const hashmap_map_t* map, hashmap_key_t key, int64_t* out)
+hashmap_get(const hashmap_map_t* map, char* key, int64_t* out)
 {
     uint64_t index = hashmap_hash1(map, key);
     hashmap_bucket_t bucket;
     if (map->buckets[index].in_use)
     {
         bucket = map->buckets[index];
-        if (strcmp(key.key, bucket.key.key) == 0)
+        if (strcmp(key, bucket.key) == 0)
         {
             *out = bucket.value;
         }
@@ -165,7 +177,7 @@ hashmap_get(const hashmap_map_t* map, hashmap_key_t key, int64_t* out)
 
         if (!map->buckets[new_index].in_use)
         {
-            if (strcmp(key.key, bucket.key.key) == 0)
+            if (strcmp(key, bucket.key) == 0)
             {
                 *out = bucket.value;
             }
@@ -176,13 +188,13 @@ hashmap_get(const hashmap_map_t* map, hashmap_key_t key, int64_t* out)
 }
 
 int64_t
-hashmap_remove(hashmap_map_t* map, hashmap_key_t key)
+hashmap_remove(hashmap_map_t* map, char* key)
 {
     uint64_t index = hashmap_hash1(map, key);
     hashmap_bucket_t* bucket = &map->buckets[index];
     if (bucket->in_use)
     {
-        if (strcmp(key.key, bucket->key.key) == 0)
+        if (strcmp(key, bucket->key) == 0)
         {
             bucket->in_use = false;
             return HASHMAP_OK;
@@ -194,7 +206,7 @@ hashmap_remove(hashmap_map_t* map, hashmap_key_t key)
             bucket = &map->buckets[new_index];
             if (bucket->in_use)
             {
-                if (strcmp(key.key, bucket->key.key) == 0)
+                if (strcmp(key, bucket->key) == 0)
                 {
                     bucket->in_use = false;
                     return HASHMAP_OK;
@@ -209,27 +221,30 @@ hashmap_remove(hashmap_map_t* map, hashmap_key_t key)
 int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 {
-    hashmap_map_t* new_map = hashmap_init_cap(map->hashf1, map->hashf2, new_capacity);
-    if (!new_map)
+    hashmap_bucket_t* new_buckets = calloc(new_capacity, sizeof(hashmap_bucket_t));
+    if (!new_buckets)
     {
         return HASHMAP_ERROR;
     }
 
-    for (uint64_t i = 0; i < map->capacity; ++i)
+    uint64_t old_capacity = map->capacity;
+    hashmap_bucket_t* old_buckets = map->buckets;
+    map->buckets = new_buckets;
+    map->capacity = new_capacity;
+
+    for (uint64_t i = 0; i < old_capacity; ++i)
     {
-        hashmap_bucket_t bucket = map->buckets[i];
-        if (bucket.in_use)
+        hashmap_bucket_t old_bucket = old_buckets[i];
+        if (old_bucket.in_use)
         {
-            int64_t status = hashmap_add(new_map, bucket.key, bucket.value);
-            if (status != HASHMAP_OK && status != HASHMAP_KEY_ALREADY_IN_MAP)
+            int64_t status = hashmap_add(map, old_bucket.key, old_bucket.value);
+            if (status != HASHMAP_OK)
             {
-                hashmap_free(new_map);
                 return status;
             }
         }
     }
 
-    hashmap_free(map);
-    *map = *new_map;
+    hashmap_free_buckets(old_buckets, old_capacity);
     return HASHMAP_OK;
 }

@@ -48,33 +48,36 @@ main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    char word[WORD_SIZE + 1];
+    char word_buffer[WORD_SIZE + 1] = {'\0'};
+    uint64_t wordcount = 0;
+
     hashmap_map_t* map = hashmap_init(hash_crc32, hash_djb2);
     if (!map)
     {
-        printf("error initializing map\n");
+        printf("error initializing map in main()\n");
         return EXIT_FAILURE;
     }
 
-    uint64_t wordcount = 0;
-    while (read_next_word(f1, word, WORD_SIZE) == 1)
+    while (read_next_word(f1, word_buffer, WORD_SIZE) == 1)
     {
-        str_tolower(word);
+        str_tolower(word_buffer);
         wordcount++;
 
-        hashmap_key_t key =
-            {
-                strlen(word) + 1,
-                word
-            };
-
-        int64_t status = hashmap_add(map, key, 5);
+        int64_t status = hashmap_add(map, word_buffer, 5);
         if (status != HASHMAP_OK)
         {
             switch (status)
             {
                 case HASHMAP_KEY_ALREADY_IN_MAP:
-                    printf("hashmap_add(): key=%s already in map\n", key.key);
+//                    printf("hashmap_add(): key=%s already in map\n", word_buffer);
+//                    for (uint64_t i = 0; i < map->capacity; ++i)
+//                    {
+//                        hashmap_bucket_t bucket = map->buckets[i];
+//                        if (bucket.in_use)
+//                        {
+//                            printf("(%lu): [%s->%lu]\n", i, bucket.key, bucket.value);
+//                        }
+//                    }
                     break;
                 default:
                     printf("hashmap_add(): error: %ld\n", status);
@@ -82,9 +85,12 @@ main(int argc, char** argv)
             }
         }
 
-        printf("map->size=%lu\n", map->size);
+        //printf("map->size=%lu\n", map->size);
     }
 
+    printf("map->size=%lu\n", map->size);
+
+    hashmap_free(map);
     fclose(f1);
     // fclose(f2);
     return EXIT_SUCCESS;

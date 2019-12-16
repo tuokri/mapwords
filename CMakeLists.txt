@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.7.2)
 project(mapwords C)
-enable_testing()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
@@ -14,5 +13,3 @@ endif ()
 add_compile_options(-Wall -Werror -pedantic)
 
 add_subdirectory(src)
-
-# add_subdirectory(test)

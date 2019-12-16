@@ -91,64 +91,68 @@ static const uint32_t hash_crctable[256] =
     };
 
 hash_t
-hash_djb2(const char* const buffer, size_t size)
+hash_djb2(const char* buffer)
 {
     hash_t hash = 5381;
 
-    for (size_t i = 0; i < size; ++i)
+    char c;
+    while ((c = *buffer++) != '\0')
     {
         // hash * 33 + buffer[i]
-        hash = ((hash << 5U) + hash) + buffer[i];
+        hash = ((hash << 5U) + hash) + c;
     }
 
     return hash;
 }
 
 hash_t
-hash_sdbm(const char* const buffer, size_t size)
+hash_sdbm(const char* buffer)
 {
     hash_t hash = 0;
 
-    for (size_t i = 0; i < size; ++i)
+    char c;
+    while ((c = *buffer++) != '\0')
     {
-        hash = buffer[i] + (hash << 6U) + (hash << 16U) - hash;
+        hash = c + (hash << 6U) + (hash << 16U) - hash;
     }
 
     return hash;
 }
 
 hash_t
-hash_default_crc32(const char* const buffer, size_t size)
+hash_default_crc32(const char* buffer)
 {
     hash_t hash = 0xFFFFFFFF;
 
-    for (size_t i = 0; i < size; ++i)
+    char c;
+    while ((c = *buffer++) != '\0')
     {
-        hash = (hash >> 8U) ^ hash_crctable[(hash ^ (unsigned char) buffer[i]) & 0xFFU];
+        hash = (hash >> 8U) ^ hash_crctable[(hash ^ (unsigned char) c) & 0xFFU];
     }
 
     return hash ^ 0xFFFFFFFF;
 }
 
 hash_t
-hash_sse42_crc32(const char* const buffer, size_t size)
+hash_sse42_crc32(const char* buffer)
 {
     hash_t hash = 0xFFFFFFFF;
 
-    for (size_t i = 0; i < size; ++i)
+    char c;
+    while ((c = *buffer++) != '\0')
     {
-        hash = _mm_crc32_u8(hash, (unsigned char) buffer[i]);
+        hash = _mm_crc32_u8(hash, (unsigned char) c);
     }
 
     return hash ^ 0xFFFFFFFF;
 }
 
 hash_t
-hash_crc32(const char* const buffer, size_t size) __attribute__ ((ifunc("resolve_crc32")));
+hash_crc32(const char* buffer) __attribute__ ((ifunc("resolve_crc32")));
 
 // Choose used CRC32 function based on processor capabilities.
 hash_t
-(* resolve_crc32(void))(const char* const, size_t)
+(* resolve_crc32(void))(const char*)
 {
     __builtin_cpu_init();
 
