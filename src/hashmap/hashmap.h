@@ -27,12 +27,6 @@ typedef struct hashmap_map
     hashmap_bucket_t* buckets;
 } hashmap_map_t;
 
-uint64_t
-hashmap_hash1(const hashmap_map_t* map, char* key);
-
-uint64_t
-hashmap_hash2(const hashmap_map_t* map, char* key);
-
 hashmap_map_t*
 hashmap_init_cap(
     hash_t (* hashf1)(const char*),

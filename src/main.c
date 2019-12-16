@@ -51,7 +51,7 @@ main(int argc, char** argv)
     char word_buffer[WORD_SIZE] = {'\0'};
     uint64_t wordcount = 0;
 
-    hashmap_map_t* map = hashmap_init(hash_crc32, hash_djb2);
+    hashmap_map_t* map = hashmap_init(hash_java, hash_djb2);
     if (!map)
     {
         printf("error initializing map in main()\n");

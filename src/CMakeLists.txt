@@ -11,3 +11,5 @@ add_executable(
     hashmap/hashmap.c
     util/util.c
 )
+
+target_link_libraries(mapwords m)

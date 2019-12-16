@@ -5,22 +5,8 @@
 
 #include "hashmap.h"
 
-// Size must always be a power of 2 because optimization,
-// where modulo is replaced with HASH & (CAPACITY - 1) is used.
 #define HASHMAP_INITIAL_CAPACITY 16
 #define RESIZE_FACTOR 0.75
-
-hash_t
-hashmap_hash1(const hashmap_map_t* const map, char* key)
-{
-    return map->hashf1(key) & (map->capacity - 1);
-}
-
-hash_t
-hashmap_hash2(const hashmap_map_t* const map, char* key)
-{
-    return map->hashf2(key) % (map->capacity - 1) + 1;
-}
 
 hashmap_map_t*
 hashmap_init_cap(
@@ -115,7 +101,8 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
         }
     }
 
-    uint64_t index = hashmap_hash1(map, key);
+    hash_t hash1 = map->hashf1(key);
+    uint64_t index = hash1 & (map->capacity - 1);
     if (map->buckets[index].in_use)
     {
         if (strcmp(map->buckets[index].key, key) == 0)
@@ -125,14 +112,12 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
 
         // printf("hashmap_add(): collision on index: %lu\n", index);
 
-        uint64_t index2 = hashmap_hash2(map, key);
+        hash_t hash_2 = map->hashf2(key);
 
         uint64_t i = 1;
         while (true)
         {
-            uint64_t new_index = (index + (i * index2)) % map->capacity;
-            printf("i=%lu, index1=%lu, capacity=%lu, index2=%lu, new_index=%lu\n",
-                   i, index, map->capacity, index2, new_index);
+            uint64_t new_index = (hash1 + (i * hash_2)) & (map->capacity - 1);
 
             if (map->buckets[new_index].in_use)
             {
@@ -141,7 +126,26 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
                     return HASHMAP_KEY_ALREADY_IN_MAP;
                 }
             }
+            else
+            {
+                break;
+            }
             ++i;
+
+            // Fall back to linear probing...
+            if (i > map->capacity)
+            {
+                for (i = 0; i < map->capacity; ++i)
+                {
+                    if (map->buckets[i].in_use)
+                    {
+                        if (strcmp(map->buckets[index].key, key) == 0)
+                        {
+                            return HASHMAP_KEY_ALREADY_IN_MAP;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -164,7 +168,9 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
 int64_t
 hashmap_get(const hashmap_map_t* map, char* key, int64_t* out)
 {
-    uint64_t index = hashmap_hash1(map, key);
+    hash_t hash1 = map->hashf1(key);
+    uint64_t index = hash1 & (map->capacity - 1);
+
     hashmap_bucket_t bucket;
     if (map->buckets[index].in_use)
     {
@@ -175,10 +181,10 @@ hashmap_get(const hashmap_map_t* map, char* key, int64_t* out)
         }
     }
 
-    uint64_t index2 = hashmap_hash2(map, key);
+    uint64_t index2 = map->hashf2(key);
     for (uint64_t i = 0; i < map->capacity; ++i)
     {
-        uint64_t new_index = (index + (i * index2)) & (map->capacity - 1);
+        uint64_t new_index = (hash1 + (i * index2)) & (map->capacity - 1);
 
         if (map->buckets[new_index].in_use)
         {
@@ -195,7 +201,9 @@ hashmap_get(const hashmap_map_t* map, char* key, int64_t* out)
 int64_t
 hashmap_remove(hashmap_map_t* map, char* key)
 {
-    uint64_t index = hashmap_hash1(map, key);
+    hash_t hash1 = map->hashf1(key);
+    uint64_t index = hash1 & (map->capacity - 1);
+
     hashmap_bucket_t* bucket = &map->buckets[index];
     if (bucket->in_use)
     {
@@ -204,10 +212,10 @@ hashmap_remove(hashmap_map_t* map, char* key)
             bucket->in_use = false;
             return HASHMAP_OK;
         }
-        uint64_t index2 = hashmap_hash2(map, key);
+        uint64_t index2 = map->hashf2(key);
         for (uint64_t i = 1; i < map->capacity; ++i)
         {
-            uint64_t new_index = (index + (i * index2)) & (map->capacity - 1);
+            uint64_t new_index = (hash1 + (i * index2)) & (map->capacity - 1);
             bucket = &map->buckets[new_index];
             if (bucket->in_use)
             {

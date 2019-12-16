@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <string.h>
+#include <math.h>
 
 #include "hash.h"
 
@@ -98,7 +100,7 @@ hash_djb2(const char* buffer)
     char c;
     while ((c = *buffer++) != '\0')
     {
-        // hash * 33 + buffer[i]
+        // hash * 33 + c
         hash = ((hash << 5U) + hash) + c;
     }
 
@@ -114,6 +116,23 @@ hash_sdbm(const char* buffer)
     while ((c = *buffer++) != '\0')
     {
         hash = c + (hash << 6U) + (hash << 16U) - hash;
+    }
+
+    return hash;
+}
+
+hash_t
+hash_java(const char* buffer)
+{
+    hash_t hash = 0;
+    uint32_t n = strlen(buffer);
+
+    char c;
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        c = buffer[i];
+        // uint32_t x = (i % 2 == 0) ? 1 : 2;
+        hash += c * pow(31, n - i);
     }
 
     return hash;
