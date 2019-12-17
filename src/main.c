@@ -93,11 +93,6 @@ main(int argc, char** argv)
         wordcount++;
         charcount += strlen(word_buffer);
 
-        if (strcmp(word_buffer, "this") == 0)
-        {
-            printf("main(): read 'this'\n");
-        }
-
         status = hashmap_get(map, word_buffer, value);
         if (status == HASHMAP_KEY_FOUND)
         {

@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
+
+#ifdef DEBUG
+
+#include <assert.h>
+
+#endif
 
 #include "hashmap.h"
 
@@ -108,14 +113,6 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
     uint64_t index = hash & (map->capacity - 1);
     hashmap_bucket_t* bucket = &map->buckets[index];
 
-    printf("initial bucket: %s->%lu\n", bucket->key, bucket->value);
-
-    if (strcmp(key, "this") == 0)
-    {
-        printf("capacity=%lu, hashmap_lookup_index 'this' hash=%lu, key=%s, initial index=%lu\n",
-               map->capacity, hash, key, index);
-    }
-
     if (bucket->in_use)
     {
         if ((strcmp(bucket->key, key) == 0) && (bucket->hash == hash))
@@ -132,11 +129,6 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
         {
             perturb >>= PERTURB_SHIFT;
             index = (index * 5 + perturb + 1) & (map->capacity - 1);
-
-            if (strcmp(key, "this") == 0)
-            {
-                printf("hashmap_lookup_index(): new_index=%lu\n", index);
-            }
 
             if (map->buckets[index].in_use)
             {
@@ -163,6 +155,10 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
 {
     if (((float) map->size / (float) map->capacity) >= RESIZE_FACTOR)
     {
+#ifdef DEBUG
+        assert(!map->debug_no_cascading_rehash);
+#endif
+
         uint64_t new_capacity = map->capacity * 2;
         printf("hashmap_add(): load factor exceeded with size: %lu, increasing map capacity to: %lu\n",
                map->size, new_capacity);
@@ -180,18 +176,8 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
     uint64_t status = hashmap_lookup_index(map, hash, key, index);
     if (status == HASHMAP_KEY_FOUND)
     {
-        if (strcmp(key, "this") == 0)
-        {
-            printf("capacity=%lu, 'this' already in %lu\n", map->capacity, *index);
-        }
-
         free(index);
         return status;
-    }
-
-    if (strcmp(key, "this") == 0)
-    {
-        printf("capacity=%lu, insert 'this' on %lu\n", map->capacity, *index);
     }
 
     hashmap_bucket_t* bucket = &map->buckets[*index];
@@ -217,15 +203,10 @@ int64_t
 hashmap_get(hashmap_map_t* map, char* key, int64_t* out)
 {
     hash_t hash = map->hashf(key);
-    printf("hash=%lu\n", hash);
     uint64_t* index = malloc(sizeof(uint64_t));
     uint64_t status = hashmap_lookup_index(map, hash, key, index);
     if (status == HASHMAP_KEY_FOUND)
     {
-        if (strcmp(key, "this") == 0)
-        {
-            printf("hashmap_get(): 'this' found\n");
-        }
         *out = map->buckets[*index].value;
     }
 
@@ -252,6 +233,10 @@ hashmap_update(hashmap_map_t* map, char* key, int64_t new_value)
 int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 {
+#ifdef DEBUG
+    map->debug_no_cascading_rehash = true;
+#endif
+
     hashmap_bucket_t* new_buckets = hashmap_init_buckets(new_capacity);
     if (!new_buckets)
     {
@@ -262,46 +247,51 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
     hashmap_bucket_t* old_buckets = map->buckets;
     map->buckets = new_buckets;
     map->capacity = new_capacity;
-
-    for (uint64_t i = 0; i < map->capacity; ++i)
-    {
-        printf("rehash: %s->%lu\n", map->buckets[i].key, map->buckets[i].value);
-    }
+    map->size = 0;
 
     for (uint64_t i = 0; i < old_capacity; ++i)
     {
         hashmap_bucket_t old_bucket = old_buckets[i];
         if (old_bucket.in_use)
         {
+#ifdef DEBUG
+            printf("hashmap_rehash(): rehashing from old bucket: %s->%lu\n",
+                   old_bucket.key, old_bucket.value);
+#endif
+
             int64_t status = hashmap_add(map, old_bucket.key, old_bucket.value);
             if (status != HASHMAP_OK)
             {
                 printf("hashmap_rehash(): error: hashmap_add() status=%lu on key=%s, value=%ld, hash=%lu\n",
                        status, old_bucket.key, old_bucket.value, old_bucket.hash);
 
-                for (uint64_t x = 0; x < old_capacity; ++x)
-                {
-                    hashmap_bucket_t bucket = old_buckets[x];
-                    if (bucket.in_use)
-                    {
-                        printf("old_map (%lu): [%s->%lu]\n", x, bucket.key, bucket.value);
-                    }
-                }
-
-                for (uint64_t z = 0; z < new_capacity; ++z)
-                {
-                    hashmap_bucket_t bucket = new_buckets[z];
-                    if (bucket.in_use)
-                    {
-                        printf("new_map (%lu): [%s->%lu]\n", z, bucket.key, bucket.value);
-                    }
-                }
+//                for (uint64_t x = 0; x < old_capacity; ++x)
+//                {
+//                    hashmap_bucket_t bucket = old_buckets[x];
+//                    if (bucket.in_use)
+//                    {
+//                        printf("old_map (%lu): [%s->%lu]\n", x, bucket.key, bucket.value);
+//                    }
+//                }
+//
+//                for (uint64_t z = 0; z < new_capacity; ++z)
+//                {
+//                    hashmap_bucket_t bucket = new_buckets[z];
+//                    if (bucket.in_use)
+//                    {
+//                        printf("new_map (%lu): [%s->%lu]\n", z, bucket.key, bucket.value);
+//                    }
+//                }
 
                 hashmap_free_buckets(old_buckets, old_capacity);
                 return status;
             }
         }
     }
+
+#ifdef DEBUG
+    map->debug_no_cascading_rehash = false;
+#endif
 
     hashmap_free_buckets(old_buckets, old_capacity);
     return HASHMAP_OK;

@@ -24,10 +24,13 @@ typedef struct hashmap_map
     uint64_t collisions;
     uint64_t size;
     uint64_t capacity;
-
     hash_t (* hashf)(const char*);
-
     hashmap_bucket_t* buckets;
+
+#ifdef DEBUG
+    bool debug_no_cascading_rehash;
+#endif
+
 } hashmap_map_t;
 
 typedef struct hashmap_key_value
