@@ -131,7 +131,6 @@ hash_java(const char* buffer)
     for (uint32_t i = 0; i < n; ++i)
     {
         c = buffer[i];
-        // uint32_t x = (i % 2 == 0) ? 1 : 2;
         hash += c * pow(31, n - i);
     }
 
@@ -183,7 +182,7 @@ hash_t
     return hash_default_crc32;
 }
 
-hash_t (*get_hashf(const char* hashf_name))(const char*)
+hash_t (* get_hashf(const char* hashf_name))(const char*)
 {
     if (strcmp(hashf_name, "hash_crc32") == 0)
     {

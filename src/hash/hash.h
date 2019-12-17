@@ -37,6 +37,6 @@ hash_t
 hash_crc32(const char* buffer);
 
 // Get hash function pointer from string.
-hash_t (*get_hashf(const char*))(const char*);
+hash_t (* get_hashf(const char*))(const char*);
 
 #endif //MAPWORDS_HASH_H
