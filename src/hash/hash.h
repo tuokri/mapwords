@@ -30,12 +30,6 @@ hash_java(const char* buffer);
 hash_t
 hash_default_crc32(const char* buffer);
 
-hash_t
-hash_sse42_crc32(const char* buffer);
-
-hash_t
-hash_crc32(const char* buffer);
-
 // Get hash function pointer from string.
 hash_t (* get_hashf(const char*))(const char*);
 

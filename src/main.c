@@ -68,13 +68,13 @@ main(int argc, char** argv)
     if (hashf == NULL)
     {
         strcpy(hashf_name, "hash_crc32");
-        hashf = hash_crc32;
+        hashf = hash_djb2;
     }
 
     hashmap_map_t* map = hashmap_init(hashf);
     if (!map)
     {
-        printf("main(): error initializing MAP in\n");
+        printf("main(): error initializing map in\n");
         return EXIT_FAILURE;
     }
 
@@ -140,7 +140,7 @@ main(int argc, char** argv)
     printf("stats: wordcount=%lu\n", wordcount);
     printf("stats: charcount=%lu\n", charcount);
 
-    // hashmap_print(MAP);
+    // hashmap_print(map);
 
     hashmap_free(map);
     fclose(f1);

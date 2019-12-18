@@ -14,6 +14,10 @@
 #define RESIZE_FACTOR 0.75
 #define PERTURB_SHIFT 5U
 
+#ifdef DEBUG
+#define IS_POWER_OF_2(x) (((x) & (x - 1)) == 0)
+#endif
+
 void
 hashmap_free_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
 {
@@ -37,7 +41,8 @@ hashmap_init_buckets(uint64_t capacity)
     hashmap_bucket_t* buckets = calloc(capacity, sizeof(hashmap_bucket_t));
     if (!buckets)
     {
-        fprintf(stderr, "hashmap_init_buckets(): error: calloc(): MAP->buckets\n");
+        fprintf(stderr, "hashmap_init_buckets(): error: calloc(): "
+                        "map->buckets\n");
         return NULL;
     }
 
@@ -46,7 +51,8 @@ hashmap_init_buckets(uint64_t capacity)
         buckets[i].key = calloc(1, sizeof(char));
         if (!buckets[i].key)
         {
-            fprintf(stderr, "hashmap_init_buckets(): error: calloc(): MAP->buckets.key[%lu]\n", i);
+            fprintf(stderr, "hashmap_init_buckets(): error: calloc(): "
+                            "map->buckets.key[%lu]\n", i);
             hashmap_free_buckets(buckets, capacity);
             return NULL;
         }
@@ -70,7 +76,7 @@ hashmap_init_cap(
     hashmap_map_t* map = calloc(1, sizeof(hashmap_map_t));
     if (!map)
     {
-        fprintf(stderr, "hashmap_init_cap(): error: calloc(): MAP\n");
+        fprintf(stderr, "hashmap_init_cap(): error: calloc(): map\n");
         return NULL;
     }
 
@@ -90,8 +96,7 @@ hashmap_init_cap(
 }
 
 hashmap_map_t*
-hashmap_init(
-    hash_t (* hashf)(const char*))
+hashmap_init(hash_t (* hashf)(const char*))
 {
     return hashmap_init_cap(hashf, HASHMAP_INITIAL_CAPACITY);
 }
@@ -137,8 +142,7 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
                     *out = index;
                     return HASHMAP_KEY_FOUND;
                 }
-            }
-            else
+            } else
             {
                 break;
             }
@@ -154,6 +158,12 @@ int64_t
 hashmap_add(hashmap_map_t* map, char* key, int64_t value)
 {
     hash_t hash = map->hashf(key);
+    return hashmap_add_knownhash(map, key, value, hash);
+}
+
+int64_t
+hashmap_add_knownhash(hashmap_map_t* map, char* key, int64_t value, hash_t hash)
+{
     uint64_t index = 0;
     int64_t status = hashmap_lookup_index(map, hash, key, &index);
     if (status == HASHMAP_KEY_FOUND)
@@ -172,7 +182,8 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
         uint64_t new_capacity = map->capacity * 2;
 
 #ifdef DEBUG
-        printf("hashmap_add(): load factor exceeded with size: %lu, increasing MAP capacity to: %lu\n",
+        printf("hashmap_add(): load factor exceeded with size: %lu, "
+               "increasing map capacity to: %lu\n",
                map->size, new_capacity);
 #endif
 
@@ -188,7 +199,8 @@ hashmap_add(hashmap_map_t* map, char* key, int64_t value)
         status = hashmap_lookup_index(map, hash, key, &index);
         if (status != HASHMAP_KEY_NOT_FOUND)
         {
-            printf("hashmap_add(): error: hashmap_lookup_index() status=%lu\n", status);
+            printf("hashmap_add(): error: hashmap_lookup_index() "
+                   "status=%lu\n", status);
             return status;
         }
     }
@@ -221,7 +233,8 @@ hashmap_get(hashmap_map_t* map, char* key, int64_t* out)
     hash_t hash = map->hashf(key);
     uint64_t index = 0;
     int64_t status = hashmap_lookup_index(map, hash, key, &index);
-    if (status == HASHMAP_KEY_FOUND)
+    if (status == HASHMAP_KEY_FOUND
+        )
     {
         *out = map->buckets[index].value;
     }
@@ -248,6 +261,7 @@ int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 {
 #ifdef DEBUG
+    assert(IS_POWER_OF_2(new_capacity));
     map->debug_no_cascading_rehash = true;
 #endif
 
@@ -278,12 +292,14 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
         if (old_bucket.in_use)
         {
 #ifdef DEBUG
-
-            printf("hashmap_rehash(): rehashing from old bucket: %s->%lu\n",
-                   old_bucket.key, old_bucket.value);
+            printf("hashmap_rehash(): rehashing from old bucket: "
+                   "%s->%lu (hash=%lu)\n",
+                   old_bucket.key, old_bucket.value, old_bucket.hash);
 #endif
 
-            int64_t status = hashmap_add(map, old_bucket.key, old_bucket.value);
+            int64_t status = hashmap_add_knownhash(
+                map, old_bucket.key, old_bucket.value, old_bucket.hash);
+
             if (status != HASHMAP_OK)
             {
                 printf("hashmap_rehash(): error: hashmap_add() status=%lu on "

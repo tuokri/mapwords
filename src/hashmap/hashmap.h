@@ -6,10 +6,13 @@
 
 #include "hash.h"
 
+// Capacity *must* always be a power of two, because
+// hash % capacity is replace with hash & (capacity - 1)
+// for performance purposes.
 #define HASHMAP_INITIAL_CAPACITY 16U
 
-#define HASHMAP_OK 0
 #define HASHMAP_ERROR -1
+#define HASHMAP_OK 0
 #define HASHMAP_KEY_NOT_FOUND 1
 #define HASHMAP_KEY_FOUND 2
 
@@ -42,13 +45,10 @@ typedef struct hashmap_key_value
 } hashmap_key_value_t;
 
 hashmap_map_t*
-hashmap_init_cap(
-    hash_t (* hashf)(const char*),
-    uint64_t capacity);
+hashmap_init_cap(hash_t (* hashf)(const char*), uint64_t capacity);
 
 hashmap_map_t*
-hashmap_init(
-    hash_t (* hashf)(const char* buffer));
+hashmap_init(hash_t (* hashf)(const char* buffer));
 
 void
 hashmap_free(hashmap_map_t* map);
@@ -58,6 +58,9 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out);
 
 int64_t
 hashmap_add(hashmap_map_t* map, char* key, int64_t value);
+
+int64_t
+hashmap_add_knownhash(hashmap_map_t* map, char* key, int64_t value, hash_t hash);
 
 int64_t
 hashmap_get(hashmap_map_t* map, char* key, int64_t* out);
