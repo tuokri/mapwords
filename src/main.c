@@ -88,6 +88,9 @@ main(int argc, char** argv)
     int64_t status;
     while (read_next_word(f1, word_buffer, WORD_SIZE) == 1)
     {
+        hashmap_print(map);
+        puts("************************");
+
         str_tolower(word_buffer);
         // printf("%s\n", word_buffer);
         wordcount++;
@@ -100,21 +103,24 @@ main(int argc, char** argv)
             status = hashmap_update(map, word_buffer, *value);
             if (status != HASHMAP_OK)
             {
-                printf("main(): hashmap_update(): error: %ld, word: %s\n", status, word_buffer);
+                printf("main(): hashmap_update(): error: %ld, word: %s\n",
+                       status, word_buffer);
                 goto err;
             }
             continue;
         }
         else if (status == HASHMAP_ERROR)
         {
-            printf("main(): hashmap_get(): error: %ld, word: %s\n", status, word_buffer);
+            printf("main(): hashmap_get(): error: %ld, word: %s\n",
+                   status, word_buffer);
             goto err;
         }
 
         status = hashmap_add(map, word_buffer, 1);
         if (status != HASHMAP_OK)
         {
-            printf("main(): hashmap_add(): error: %ld, word: %s\n", status, word_buffer);
+            printf("main(): hashmap_add(): error: %ld, word: %s\n",
+                   status, word_buffer);
             goto err;
         }
     }
@@ -142,6 +148,7 @@ main(int argc, char** argv)
     return EXIT_SUCCESS;
 
     err:
+    hashmap_print(map);
     free(value);
     hashmap_free(map);
     fclose(f1);
