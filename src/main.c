@@ -74,7 +74,7 @@ main(int argc, char** argv)
     hashmap_map_t* map = hashmap_init(hashf);
     if (!map)
     {
-        printf("main(): error initializing map in\n");
+        printf("main(): error initializing MAP in\n");
         return EXIT_FAILURE;
     }
 
@@ -134,11 +134,7 @@ main(int argc, char** argv)
     printf("stats: wordcount=%lu\n", wordcount);
     printf("stats: charcount=%lu\n", charcount);
 
-//    for (uint64_t i = 0; i < map->capacity; ++i)
-//    {
-//        printf("[%lu]: %s->%lu\n",
-//               i, map->buckets[i].key, map->buckets[i].value);
-//    }
+    // hashmap_print(MAP);
 
     hashmap_free(map);
     fclose(f1);

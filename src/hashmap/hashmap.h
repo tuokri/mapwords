@@ -6,6 +6,8 @@
 
 #include "hash.h"
 
+#define HASHMAP_INITIAL_CAPACITY 16U
+
 #define HASHMAP_OK 0
 #define HASHMAP_ERROR -1
 #define HASHMAP_KEY_NOT_FOUND 1
@@ -67,6 +69,9 @@ int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity);
 
 int64_t
-hashmap_qsort_by_value(hashmap_map_t* map, hashmap_key_value_t* out);
+hashmap_qsort_by_value(const hashmap_map_t* map, hashmap_key_value_t* out);
+
+void
+hashmap_print(const hashmap_map_t* map);
 
 #endif //MAPWORDS_HASHMAP_H

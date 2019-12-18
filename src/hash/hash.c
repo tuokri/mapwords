@@ -1,6 +1,8 @@
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "hash.h"
 
@@ -24,7 +26,7 @@
 /* in the FTP archive "ftp.adelaide.edu.au/pub/rocksoft".        */
 /*                                                               */
 /*****************************************************************/
-static const uint32_t hash_crctable[256] =
+static const uint64_t hash_crctable[256] =
     {
         0x00000000L, 0xF26B8303L, 0xE13B70F7L, 0x1350F3F4L,
         0xC79A971FL, 0x35F1141CL, 0x26A1E7E8L, 0xD4CA64EBL,
@@ -95,13 +97,17 @@ static const uint32_t hash_crctable[256] =
 hash_t
 hash_djb2(const char* buffer)
 {
+#ifdef DEBUG
+    assert(buffer != NULL);
+#endif
+
+    uint64_t n = strlen(buffer);
     hash_t hash = 5381;
 
-    char c;
-    while ((c = *buffer++) != '\0')
+    for (uint64_t i = 0; i < n; ++i)
     {
         // hash * 33 + c
-        hash = ((hash << 5U) + hash) + c;
+        hash = ((hash << 5U) + hash) + buffer[i];
     }
 
     return hash;
@@ -110,12 +116,16 @@ hash_djb2(const char* buffer)
 hash_t
 hash_sdbm(const char* buffer)
 {
+#ifdef DEBUG
+    assert(buffer != NULL);
+#endif
+
+    uint64_t n = strlen(buffer);
     hash_t hash = 0;
 
-    char c;
-    while ((c = *buffer++) != '\0')
+    for (uint64_t i = 0; i < n; ++i)
     {
-        hash = c + (hash << 6U) + (hash << 16U) - hash;
+        hash = buffer[i] + (hash << 6U) + (hash << 16U) - hash;
     }
 
     return hash;
@@ -124,14 +134,16 @@ hash_sdbm(const char* buffer)
 hash_t
 hash_java(const char* buffer)
 {
-    hash_t hash = 0;
-    uint32_t n = strlen(buffer);
+#ifdef DEBUG
+    assert(buffer != NULL);
+#endif
 
-    char c;
-    for (uint32_t i = 0; i < n; ++i)
+    hash_t hash = 0;
+    uint64_t n = strlen(buffer);
+
+    for (uint64_t i = 0; i < n; ++i)
     {
-        c = buffer[i];
-        hash += c * pow(31, n - i);
+        hash += buffer[i] * pow(31, n - i);
     }
 
     return hash;
@@ -140,29 +152,37 @@ hash_java(const char* buffer)
 hash_t
 hash_default_crc32(const char* buffer)
 {
-    hash_t hash = 0xFFFFFFFF;
+#ifdef DEBUG
+    assert(buffer != NULL);
+#endif
 
-    char c;
-    while ((c = *buffer++) != '\0')
+    uint64_t len = strlen(buffer);
+    hash_t hash = UINT64_MAX;
+
+    for(uint64_t i = 0; i < len; ++i)
     {
-        hash = (hash >> 8U) ^ hash_crctable[(hash ^ (unsigned char) c) & 0xFFU];
+        hash = (hash >> 8U) ^ hash_crctable[(hash ^ (unsigned char) buffer[i]) & 0xFFU];
     }
 
-    return hash ^ 0xFFFFFFFF;
+    return hash ^ UINT64_MAX;
 }
 
 hash_t
 hash_sse42_crc32(const char* buffer)
 {
-    hash_t hash = 0xFFFFFFFF;
+#ifdef DEBUG
+    assert(buffer != NULL);
+#endif
 
-    char c;
-    while ((c = *buffer++) != '\0')
+    uint64_t len = strlen(buffer);
+    hash_t hash = UINT64_MAX;
+
+    for(uint64_t i = 0; i < len; ++i)
     {
-        hash = _mm_crc32_u8(hash, (unsigned char) c);
+        hash = _mm_crc32_u8(hash, buffer[i]);
     }
 
-    return hash ^ 0xFFFFFFFF;
+    return hash ^ UINT64_MAX;;
 }
 
 hash_t

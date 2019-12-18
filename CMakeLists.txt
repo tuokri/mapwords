@@ -13,3 +13,4 @@ endif ()
 add_compile_options(-Wall -Werror -pedantic)
 
 add_subdirectory(src)
+add_subdirectory(test)
