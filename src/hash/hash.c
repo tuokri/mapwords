@@ -1,7 +1,11 @@
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h>
+
+#ifdef DEBUG
+
+#include <assert.h>
+
+#endif
 
 #include "hash.h"
 
@@ -54,7 +58,7 @@ hash_java(const char* buffer)
 
     for (uint64_t i = 0; i < n; ++i)
     {
-        hash += buffer[i] * pow(31, n - i);
+        hash += buffer[i] + hash * 31;
     }
 
     return hash;
@@ -65,13 +69,16 @@ hash_t (* get_hashf(const char* hashf_name))(const char*)
     if (strcmp(hashf_name, "hash_djb2") == 0)
     {
         return hash_djb2;
-    } else if (strcmp(hashf_name, "hash_java") == 0)
+    }
+    else if (strcmp(hashf_name, "hash_java") == 0)
     {
         return hash_java;
-    } else if (strcmp(hashf_name, "hash_sdbm") == 0)
+    }
+    else if (strcmp(hashf_name, "hash_sdbm") == 0)
     {
         return hash_sdbm;
-    } else
+    }
+    else
     {
         return NULL;
     }

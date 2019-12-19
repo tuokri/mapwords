@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+"""
+Driver script for running mapwords benchmark and
+generating performance analysis results.
+"""
+
 import subprocess
 import argparse
 from argparse import Namespace

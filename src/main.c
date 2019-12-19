@@ -122,6 +122,21 @@ main(int argc, char** argv)
         }
     }
 
+    hashmap_bucket_t* results = NULL;
+    status = hashmap_sort_by_value(map, 0, map->capacity, &results);
+    if (status != HASHMAP_OK)
+    {
+        printf("main(): hashmap_sort_by_value(): error: %ld\n",
+               status);
+    }
+    else
+    {
+        for(uint64_t i = 0; i < 100; ++i)
+        {
+            printf("[%lu]: %s->%lu\n", i, results[i].key, results[i].value);
+        }
+    }
+
     struct timespec ts_stop;
     timespec_get(&ts_stop, TIME_UTC);
 
@@ -139,6 +154,10 @@ main(int argc, char** argv)
 
     // hashmap_print(map);
 
+    if (results)
+    {
+        hashmap_free_buckets(results, map->capacity);
+    }
     hashmap_free(map);
     fclose(f1);
     free(value);

@@ -1,7 +1,7 @@
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef DEBUG
 
@@ -9,6 +9,7 @@
 
 #endif
 
+#include "hash.h"
 #include "hashmap.h"
 
 #define RESIZE_FACTOR 0.75
@@ -21,6 +22,11 @@
 void
 hashmap_free_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
 {
+    if (!buckets)
+    {
+        return;
+    }
+
     for (uint64_t i = 0; i < capacity; i++)
     {
         hashmap_bucket_t* bucket = &buckets[i];
@@ -143,7 +149,8 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
                     *out = index;
                     return HASHMAP_KEY_FOUND;
                 }
-            } else
+            }
+            else
             {
                 break;
             }
@@ -192,7 +199,8 @@ hashmap_add_knownhash(hashmap_map_t* map, char* key, int64_t value, hash_t hash)
 
         if (status != HASHMAP_OK)
         {
-            printf("hashmap_add(): error: hashmap_rehash() status=%lu\n", status);
+            fprintf(stderr, "hashmap_add(): error: hashmap_rehash() "
+                            "status=%lu\n", status);
             return status;
         }
 
@@ -200,26 +208,20 @@ hashmap_add_knownhash(hashmap_map_t* map, char* key, int64_t value, hash_t hash)
         status = hashmap_lookup_index(map, hash, key, &index);
         if (status != HASHMAP_KEY_NOT_FOUND)
         {
-            printf("hashmap_add(): error: hashmap_lookup_index() "
-                   "status=%lu\n", status);
+            fprintf(stderr, "hashmap_add(): error: hashmap_lookup_index() "
+                            "status=%lu\n", status);
             return status;
         }
     }
 
     hashmap_bucket_t* bucket = &map->buckets[index];
-    if (bucket->key)
-    {
-        free(bucket->key);
-        bucket->key = NULL;
-        bucket->in_use = false;
-        bucket->hash = 0;
-        bucket->value = 0;
-    }
-    bucket->key = calloc(strlen(key) + 1, sizeof(char));
+
+    bucket->key = realloc(bucket->key, sizeof(char) * strlen(key) + 1);
     if (!bucket->key)
     {
         return HASHMAP_ERROR;
     }
+
     strcpy(bucket->key, key);
     bucket->value = value;
     bucket->in_use = true;
@@ -261,6 +263,12 @@ hashmap_update(hashmap_map_t* map, char* key, int64_t new_value)
 int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 {
+    // Shrinking not implemented.
+    if (new_capacity < map->capacity)
+    {
+        return HASHMAP_ERROR;
+    }
+
 #ifdef DEBUG
     assert(IS_POWER_OF_2(new_capacity));
     map->debug_no_cascading_rehash = true;
@@ -293,9 +301,9 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
         if (old_bucket.in_use)
         {
 #ifdef DEBUG
-            printf("hashmap_rehash(): rehashing from old bucket: "
-                   "%s->%lu (hash=%lu)\n",
-                   old_bucket.key, old_bucket.value, old_bucket.hash);
+            fprintf(stderr, "hashmap_rehash(): rehashing from old bucket: "
+                            "%s->%lu (hash=%lu)\n",
+                    old_bucket.key, old_bucket.value, old_bucket.hash);
 #endif
 
             int64_t status = hashmap_add_knownhash(
@@ -303,10 +311,10 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 
             if (status != HASHMAP_OK)
             {
-                printf("hashmap_rehash(): error: hashmap_add() status=%lu on "
-                       "key=%s, value=%ld, hash=%lu, old_capacity=%lu, new_capacity=%lu\n",
-                       status, old_bucket.key, old_bucket.value, old_bucket.hash,
-                       old_capacity, new_capacity);
+                fprintf(stderr, "hashmap_rehash(): error: hashmap_add() status=%lu on "
+                                "key=%s, value=%ld, hash=%lu, old_capacity=%lu, new_capacity=%lu\n",
+                        status, old_bucket.key, old_bucket.value, old_bucket.hash,
+                        old_capacity, new_capacity);
 
                 hashmap_free_buckets(old_buckets, old_capacity);
                 return status;
@@ -322,26 +330,106 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
     return HASHMAP_OK;
 }
 
+void
+swap(hashmap_bucket_t** b1, hashmap_bucket_t** b2)
+{
+    hashmap_bucket_t* temp = *b1;
+    *b1 = *b2;
+    *b2 = temp;
+}
+
+// Lomuto's partition scheme.
 uint64_t
 hashmap_buckets_partition(hashmap_bucket_t* buckets,
                           uint64_t low, uint64_t high)
 {
-    return 0;
+    uint64_t i = low - 1;
+    int64_t pivot = buckets[high].value;
+
+    for (uint64_t j = low; j < high; j++)
+    {
+        if (buckets[j].value <= pivot)
+        {
+            ++i;
+            swap(buckets[i], buckets[j]);
+        }
+    }
+    swap(&buckets[i + 1], &buckets[high]);
+    return i + 1;
 }
 
-int64_t
-hashmap_qsort_by_value(const hashmap_map_t* map, hashmap_key_value_t* out)
+uint64_t
+hashmap_buckets_partition_r(hashmap_bucket_t* buckets,
+                            uint64_t low, uint64_t high)
+{
+    srand(time(NULL));
+    uint64_t random = low + rand() % (high - low);
+
+    swap(&buckets[random], &buckets[high]);
+
+    return hashmap_buckets_partition(buckets, low, high);
+}
+
+void
+hashmap_sort_by_value_recurse(uint64_t low, uint64_t high, hashmap_bucket_t** out)
 {
     uint64_t pivot;
-    uint64_t low = 0;
-    uint64_t high = map->capacity;
-    hashmap_bucket_t* buckets = map->buckets;
 
     if (low < high)
     {
-        pivot = hashmap_buckets_partition(buckets, low, high);
+        pivot = hashmap_buckets_partition(*out, low, high);
 
-        return pivot;
+        hashmap_sort_by_value_recurse(low, pivot - 1, out);
+        hashmap_sort_by_value_recurse(pivot + 1, high, out);
+    }
+}
+
+int64_t
+hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
+                      uint64_t high, hashmap_bucket_t** out)
+{
+    if (*out != NULL)
+    {
+        fprintf(stderr, "hashmap_sort_by_value(): expected unallocated 'out'\n");
+        return HASHMAP_ERROR;
+    }
+
+    uint64_t pivot;
+    hashmap_bucket_t* bucket;
+    hashmap_bucket_t* out_bucket;
+
+    *out = calloc(map->capacity, sizeof(hashmap_bucket_t));
+    if (!*out)
+    {
+        fprintf(stderr, "hashmap_sort_by_value(): error: calloc(): 'out'\n");
+        return HASHMAP_ERROR;
+    }
+
+    for (uint64_t i = 0; i < map->capacity; ++i)
+    {
+        bucket = &map->buckets[i];
+        out_bucket = *out;
+
+        out_bucket[i].hash = bucket->hash;
+        out_bucket[i].in_use = bucket->in_use;
+        out_bucket[i].value = bucket->value;
+
+        out_bucket[i].key = calloc(strlen(bucket->key) + 1, sizeof(char));
+        if (!out_bucket[i].key)
+        {
+            hashmap_free_buckets(*out, map->capacity);
+            return HASHMAP_ERROR;
+        }
+
+        strcpy(out_bucket[i].key, bucket->key);
+    }
+
+    if (low < high)
+    {
+        pivot = hashmap_buckets_partition_r(*out, low, high);
+
+        hashmap_sort_by_value_recurse(low, pivot - 1, out);
+        hashmap_sort_by_value_recurse(pivot + 1, high, out);
     }
 
     return HASHMAP_OK;

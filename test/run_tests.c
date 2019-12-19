@@ -17,7 +17,7 @@ uint64_t count_used_buckets(hashmap_map_t* map)
     return count;
 }
 
-TEST rehash(void)
+TEST rehash_grow(void)
 {
     ASSERT_EQ(HASHMAP_INITIAL_CAPACITY, MAP->capacity);
     ASSERT_EQ(0, MAP->size);
@@ -47,6 +47,12 @@ TEST rehash(void)
     ASSERT_EQ(HASHMAP_KEY_FOUND, hashmap_add(MAP, "test_key3", 333));
     ASSERT_EQ(3, MAP->size);
 
+    PASS();
+}
+
+TEST rehash_shrink(void)
+{
+    ASSERT_EQ(HASHMAP_ERROR, hashmap_rehash(MAP, MAP->capacity / 2));
     PASS();
 }
 
@@ -184,7 +190,11 @@ TEST update(void)
 SUITE (hashmap_suite)
 {
     MAP = hashmap_init(hash_djb2);
-    RUN_TEST(rehash);
+    RUN_TEST(rehash_grow);
+    hashmap_free(MAP);
+
+    MAP = hashmap_init(hash_djb2);
+    RUN_TEST(rehash_shrink);
     hashmap_free(MAP);
 
     MAP = hashmap_init(hash_djb2);
