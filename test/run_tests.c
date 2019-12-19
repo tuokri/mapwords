@@ -4,17 +4,22 @@
 
 static hashmap_map_t* MAP;
 
-uint64_t count_used_buckets(hashmap_map_t* map)
+uint64_t count_used_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
 {
     uint64_t count = 0;
-    for (uint64_t i = 0; i < map->capacity; ++i)
+    for (uint64_t i = 0; i < capacity; ++i)
     {
-        if (map->buckets[i].in_use)
+        if (buckets[i].in_use)
         {
             ++count;
         }
     }
     return count;
+}
+
+uint64_t count_used_buckets_in_map(hashmap_map_t* map)
+{
+    return count_used_buckets(map->buckets, map->capacity);
 }
 
 TEST rehash_grow(void)
@@ -102,7 +107,7 @@ TEST load_factor(void)
         ASSERT_EQm(msg, HASHMAP_OK, status);
     }
 
-    bucket_count = count_used_buckets(MAP);
+    bucket_count = count_used_buckets_in_map(MAP);
     sprintf(msg, "bucket_count=%lu", bucket_count);
     ASSERT_EQm(msg, 13, bucket_count);
     ASSERT_EQ(HASHMAP_INITIAL_CAPACITY * 2, MAP->capacity);
@@ -119,7 +124,7 @@ TEST load_factor(void)
     // "y\0" triggered rehash above. Check edge case.
     ASSERT_EQ(HASHMAP_KEY_FOUND, hashmap_add(MAP, "y", (int) 'y'));
 
-    bucket_count = count_used_buckets(MAP);
+    bucket_count = count_used_buckets_in_map(MAP);
     sprintf(msg, "bucket_count=%lu", bucket_count);
     ASSERT_EQm(msg, 25, bucket_count);
     ASSERT_EQ(HASHMAP_INITIAL_CAPACITY * 2 * 2, MAP->capacity);
@@ -156,7 +161,7 @@ TEST load_factor(void)
         ASSERT_EQm(msg, HASHMAP_KEY_FOUND, status);
     }
 
-    bucket_count = count_used_buckets(MAP);
+    bucket_count = count_used_buckets_in_map(MAP);
     sprintf(msg, "bucket_count=%lu", bucket_count);
     ASSERT_EQm(msg, 25 + more, bucket_count);
     sprintf(msg, "MAP->capacity=%lu != %u", MAP->capacity,
@@ -187,6 +192,38 @@ TEST update(void)
     PASS();
 }
 
+TEST sort(void)
+{
+    uint64_t more = 32;
+    char new_key[256] = {'\0'};
+    for(uint64_t i = 0; i < more; ++i)
+    {
+        sprintf(new_key, "blob%lu", i);
+        ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
+    }
+
+    ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, "blob555", 55));
+    ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, "blob666", 55));
+
+    hashmap_bucket_t* sorted = NULL;
+    ASSERT_EQ(HASHMAP_OK, hashmap_sort_by_value(
+        MAP, 0, MAP->capacity - 1, &sorted));
+
+    ASSERT_EQ(count_used_buckets(sorted, MAP->capacity),
+        count_used_buckets_in_map(MAP));
+
+    for(uint64_t i = 0; i < MAP->capacity; ++i)
+    {
+        printf("[%lu]: %s->%lu (in_use=%d, hash=%lu)\n",
+            i, sorted[i].key, sorted[i].value, sorted[i].in_use, sorted[i].hash);
+        ASSERT_FALSE(sorted[i].key == NULL);
+        ASSERT(sorted[i].in_use == false || sorted[i].in_use == true);
+    }
+
+    hashmap_free_buckets(sorted, MAP->capacity);
+    PASS();
+}
+
 SUITE (hashmap_suite)
 {
     MAP = hashmap_init(hash_djb2);
@@ -211,6 +248,10 @@ SUITE (hashmap_suite)
 
     MAP = hashmap_init(hash_djb2);
     RUN_TEST(update);
+    hashmap_free(MAP);
+
+    MAP = hashmap_init(hash_djb2);
+    RUN_TEST(sort);
     hashmap_free(MAP);
 }
 

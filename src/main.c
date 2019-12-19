@@ -123,7 +123,7 @@ main(int argc, char** argv)
     }
 
     hashmap_bucket_t* results = NULL;
-    status = hashmap_sort_by_value(map, 0, map->capacity, &results);
+    status = hashmap_sort_by_value(map, 0, map->capacity - 1, &results);
     if (status != HASHMAP_OK)
     {
         printf("main(): hashmap_sort_by_value(): error: %ld\n",
@@ -131,7 +131,7 @@ main(int argc, char** argv)
     }
     else
     {
-        for(uint64_t i = 0; i < 100; ++i)
+        for(uint64_t i = 0; i < map->capacity; ++i)
         {
             printf("[%lu]: %s->%lu\n", i, results[i].key, results[i].value);
         }

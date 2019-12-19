@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
+#include <sys/random.h>
 
 #ifdef DEBUG
 
@@ -98,6 +98,12 @@ hashmap_init_cap(
     map->capacity = capacity;
     map->hashf = hashf;
 
+    void* buf = malloc(sizeof(int) * 32);
+    getrandom(buf, 32, GRND_RANDOM);
+    unsigned seed = *(unsigned*) buf;
+    srand(seed);
+    free(buf);
+
     return map;
 }
 
@@ -149,8 +155,7 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
                     *out = index;
                     return HASHMAP_KEY_FOUND;
                 }
-            }
-            else
+            } else
             {
                 break;
             }
@@ -301,9 +306,9 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
         if (old_bucket.in_use)
         {
 #ifdef DEBUG
-            fprintf(stderr, "hashmap_rehash(): rehashing from old bucket: "
-                            "%s->%lu (hash=%lu)\n",
-                    old_bucket.key, old_bucket.value, old_bucket.hash);
+            printf("hashmap_rehash(): rehashing from old bucket: "
+                   "%s->%lu (hash=%lu)\n",
+                   old_bucket.key, old_bucket.value, old_bucket.hash);
 #endif
 
             int64_t status = hashmap_add_knownhash(
@@ -331,43 +336,119 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 }
 
 void
-swap(hashmap_bucket_t** b1, hashmap_bucket_t** b2)
+hashmap_bucket_swap(hashmap_bucket_t** b1, hashmap_bucket_t** b2)
 {
-    hashmap_bucket_t* temp = *b1;
+#ifdef DEBUG
+    assert(b1 != NULL);
+    assert(b2 != NULL);
+    assert(*b1 != NULL);
+    assert(*b2 != NULL);
+#endif
+
+    hashmap_bucket_t* tempb = *b1;
     *b1 = *b2;
-    *b2 = temp;
+    *b2 = tempb;
 }
 
 // Lomuto's partition scheme.
 uint64_t
-hashmap_buckets_partition(hashmap_bucket_t* buckets,
+hashmap_buckets_partition(hashmap_bucket_t** buckets,
                           uint64_t low, uint64_t high)
 {
-    uint64_t i = low - 1;
-    int64_t pivot = buckets[high].value;
+    int64_t pivot = (*buckets)[high].value;
+    uint64_t i = low;
 
-    for (uint64_t j = low; j < high; j++)
+    for (uint64_t j = low; j <= high - 1; ++j)
     {
-        if (buckets[j].value <= pivot)
+        if ((*buckets)[j].value <= pivot)
         {
+            hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
+            if(!b1)
+            {
+                goto err;
+            }
+            hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
+            if(!b2)
+            {
+                goto err;
+            }
+
+            *b1 = &(*buckets)[i];
+            *b2 = &(*buckets)[j];
+
+            hashmap_bucket_swap(b1, b2);
+
+            free(b1);
+            free(b2);
+
             ++i;
-            swap(buckets[i], buckets[j]);
         }
     }
-    swap(&buckets[i + 1], &buckets[high]);
-    return i + 1;
+
+    hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
+    if(!b1)
+    {
+        goto err;
+    }
+    hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
+    if(!b2)
+    {
+        goto err;
+    }
+
+    *b1 = &(*buckets)[i];
+    *b2 = &(*buckets)[high];
+
+    hashmap_bucket_swap(b1, b2);
+
+    free(b1);
+    free(b2);
+
+    return i;
+
+    err:
+    fprintf(stderr, "hashmap_buckets_partition(): error allocating memory\n");
+    exit(HASHMAP_ERROR);
 }
 
 uint64_t
-hashmap_buckets_partition_r(hashmap_bucket_t* buckets,
+hashmap_buckets_partition_r(hashmap_bucket_t** buckets,
                             uint64_t low, uint64_t high)
 {
-    srand(time(NULL));
     uint64_t random = low + rand() % (high - low);
 
-    swap(&buckets[random], &buckets[high]);
+#ifdef DEBUG
+    assert(buckets != NULL);
+    assert(*buckets != NULL);
+    assert(low >= 0);
+    assert(high >= 0);
+    assert(random >= low);
+    assert(random <= high);
+#endif
 
+    hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
+    if(!b1)
+    {
+        goto err;
+    }
+    hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
+    if(!b2)
+    {
+        goto err;
+    }
+
+    *b1 = &(*buckets)[random];
+    *b2 = &(*buckets)[high];
+
+    hashmap_bucket_swap(b1, b2);
+
+    free(b1);
+    free(b2);
     return hashmap_buckets_partition(buckets, low, high);
+
+    err:
+    fprintf(stderr, "hashmap_buckets_partition_r(): error allocating memory\n");
+    exit(HASHMAP_ERROR);
 }
 
 void
@@ -377,8 +458,7 @@ hashmap_sort_by_value_recurse(uint64_t low, uint64_t high, hashmap_bucket_t** ou
 
     if (low < high)
     {
-        pivot = hashmap_buckets_partition(*out, low, high);
-
+        pivot = hashmap_buckets_partition_r(out, low, high);
         hashmap_sort_by_value_recurse(low, pivot - 1, out);
         hashmap_sort_by_value_recurse(pivot + 1, high, out);
     }
@@ -390,7 +470,28 @@ hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
 {
     if (*out != NULL)
     {
-        fprintf(stderr, "hashmap_sort_by_value(): expected unallocated 'out'\n");
+        fprintf(stderr, "hashmap_sort_by_value(): expected 'out' == NULL\n");
+        return HASHMAP_ERROR;
+    }
+
+    if (low > high)
+    {
+        fprintf(stderr, "hashmap_sort_by_value(): low must "
+                        "be less than high\n");
+        return HASHMAP_ERROR;
+    }
+
+    if (low < 0)
+    {
+        fprintf(stderr, "hashmap_sort_by_value(): low must "
+                        "be greater zero\n");
+        return HASHMAP_ERROR;
+    }
+
+    if (high >= map->capacity)
+    {
+        fprintf(stderr, "hashmap_sort_by_value(): high must "
+                        "be lower than %lu\n", map->capacity);
         return HASHMAP_ERROR;
     }
 
@@ -426,8 +527,8 @@ hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
 
     if (low < high)
     {
-        pivot = hashmap_buckets_partition_r(*out, low, high);
-
+        pivot = hashmap_buckets_partition_r(out, low, high);
+        printf("pivot=%lu\n", pivot);
         hashmap_sort_by_value_recurse(low, pivot - 1, out);
         hashmap_sort_by_value_recurse(pivot + 1, high, out);
     }

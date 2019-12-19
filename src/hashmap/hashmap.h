@@ -46,9 +46,7 @@ typedef struct hashmap_map
     uint64_t collisions; // Index lookup collisions count.
     uint64_t size;
     uint64_t capacity;
-
     hash_t (* hashf)(const char*);
-
     hashmap_bucket_t* buckets;
 
 #ifdef DEBUG
@@ -104,7 +102,7 @@ hashmap_update(hashmap_map_t* map, char* key, int64_t new_value);
 int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity);
 
-// Sort map by value in descending order.
+// Sort map by value in ascending order.
 // Quicksort with random pivoting.
 // Memory for 'out' parameter is allocated in the function.
 int64_t
