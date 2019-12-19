@@ -67,7 +67,7 @@ main(int argc, char** argv)
     hashf = get_hashf(hashf_name);
     if (hashf == NULL)
     {
-        strcpy(hashf_name, "hash_crc32");
+        strcpy(hashf_name, "hash_djb2");
         hashf = hash_djb2;
     }
 
@@ -88,9 +88,6 @@ main(int argc, char** argv)
     int64_t status;
     while (read_next_word(f1, word_buffer, WORD_SIZE) == 1)
     {
-        hashmap_print(map);
-        puts("************************");
-
         str_tolower(word_buffer);
         // printf("%s\n", word_buffer);
         wordcount++;
