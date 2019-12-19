@@ -134,8 +134,9 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
         {
             perturb >>= PERTURB_SHIFT;
             index = (index * 5 + perturb + 1) & (map->capacity - 1);
+            bucket = &map->buckets[index];
 
-            if (map->buckets[index].in_use)
+            if (bucket->in_use)
             {
                 if ((strcmp(bucket->key, key) == 0) && (bucket->hash == hash))
                 {
