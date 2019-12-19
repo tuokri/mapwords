@@ -72,7 +72,7 @@ TEST duplicate_add(void)
     ASSERT_EQ(HASHMAP_KEY_FOUND, status);
     ASSERT_EQ(1, MAP->size);
 
-        PASS();
+    PASS();
 }
 
 TEST load_factor(void)
@@ -81,10 +81,10 @@ TEST load_factor(void)
     uint64_t bucket_count = 0;
 
     // 13 chars -> trigger rehash with RESIZE_FACTOR == 0.75
-    // and HASHMAP_INITIAL_CAPACITY == 16.
+    // and HASHMAP_INITIAL_CAPACITY == 16. New capacity is 32.
     const char test_str_1[14] = "abcdefghijklm";
 
-    // Trigger second rehash with 12 more chars.
+    // Trigger second rehash with 12 more chars. New capacity is 64.
     const char test_str_2[13] = "nopqrstuvwxy";
 
     int64_t status;
@@ -125,14 +125,15 @@ TEST load_factor(void)
 
     ASSERT_EQ(strlen(test_str_3), strlen(test_str_1) + strlen(test_str_2));
 
-    // Add new keys until rehash triggered.
+    // Add new keys until rehash triggered. New capacity is 128.
     uint64_t more = 24;
     char new_key[256] = {'\0'};
     for(uint64_t i = 0; i < more; ++i)
     {
         sprintf(new_key, "blob%lu", i);
-        ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, -1));
+        ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
     }
+    ASSERT_EQ(strlen(test_str_3) + more, MAP->size);
 
     uint64_t correct_sz = strlen(test_str_3) + more;
     // Add some old keys again. Should not mutate map.
@@ -152,7 +153,9 @@ TEST load_factor(void)
     bucket_count = count_used_buckets(MAP);
     sprintf(msg, "bucket_count=%lu", bucket_count);
     ASSERT_EQm(msg, 25 + more, bucket_count);
-    ASSERT_EQ(HASHMAP_INITIAL_CAPACITY * 2 * 2, MAP->capacity);
+    sprintf(msg, "MAP->capacity=%lu != %u", MAP->capacity,
+            HASHMAP_INITIAL_CAPACITY * 2 * 2 * 2);
+    ASSERT_EQm(msg, HASHMAP_INITIAL_CAPACITY * 2 * 2 * 2, MAP->capacity);
     ASSERT_EQ(correct_sz, MAP->size);
 
     PASS();
@@ -180,23 +183,23 @@ TEST update(void)
 
 SUITE (hashmap_suite)
 {
-    MAP = hashmap_init(hash_crc32);
+    MAP = hashmap_init(hash_djb2);
     RUN_TEST(rehash);
     hashmap_free(MAP);
 
-    MAP = hashmap_init(hash_crc32);
+    MAP = hashmap_init(hash_djb2);
     RUN_TEST(duplicate_add);
     hashmap_free(MAP);
 
-    MAP = hashmap_init(hash_crc32);
+    MAP = hashmap_init(hash_djb2);
     RUN_TEST(duplicate_add);
     hashmap_free(MAP);
 
-    MAP = hashmap_init(hash_crc32);
+    MAP = hashmap_init(hash_djb2);
     RUN_TEST(load_factor);
     hashmap_free(MAP);
 
-    MAP = hashmap_init(hash_crc32);
+    MAP = hashmap_init(hash_djb2);
     RUN_TEST(update);
     hashmap_free(MAP);
 }
