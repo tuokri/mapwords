@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/random.h>
 
 #ifdef DEBUG
 
@@ -17,6 +16,51 @@
 
 #ifdef DEBUG
 #define IS_POWER_OF_2(x) (((x) & (x - 1)) == 0)
+#endif
+
+#ifdef _WIN32
+
+#include <windows.h>
+#include <Wincrypt.h>
+
+#define SEED() { \
+HCRYPTPROV hCryptProv; \
+BYTE pbData[16]; \
+if (CryptAcquireContext( \
+    &hCryptProv, \
+    (LPCSTR) NULL, \
+    (LPCSTR) "Microsoft Base Cryptographic Provider v1.0", \
+    PROV_RSA_FULL, \
+    CRYPT_VERIFYCONTEXT)) \
+{ \
+    if (CryptGenRandom(hCryptProv, 16, pbData)) \
+    { \
+        srand(*(unsigned*) pbData); \
+    } \
+    else \
+    { \
+        puts("error generating random seed"); \
+        exit(1); \
+    } \
+} \
+else \
+{ \
+    puts("error generating random seed"); \
+    exit(1); \
+} \
+}
+
+#elif defined(__linux__)
+
+#include <sys/random.h>
+
+#define SEED() { \
+    void* buf = malloc(sizeof(int) * 32); \
+    getrandom(buf, 32, GRND_RANDOM); \
+    srand(*(unsigned*) buf); \
+    free(buf); \
+}
+
 #endif
 
 void
@@ -98,11 +142,7 @@ hashmap_init_cap(
     map->capacity = capacity;
     map->hashf = hashf;
 
-    void* buf = malloc(sizeof(int) * 32);
-    getrandom(buf, 32, GRND_RANDOM);
-    unsigned seed = *(unsigned*) buf;
-    srand(seed);
-    free(buf);
+    SEED()
 
     return map;
 }

@@ -2,6 +2,7 @@ include_directories(
         hash
         hashmap
         util
+        common
 )
 
 add_executable(
@@ -13,3 +14,4 @@ add_executable(
 )
 
 target_link_libraries(mapwords m)
+set_property(TARGET mapwords PROPERTY C_STANDARD 11)

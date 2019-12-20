@@ -2,6 +2,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/src/hash
         ${CMAKE_SOURCE_DIR}/src/hashmap
         ${CMAKE_SOURCE_DIR}/src/util
+        ${CMAKE_SOURCE_DIR}/src/common
 )
 
 add_executable(

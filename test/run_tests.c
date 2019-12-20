@@ -1,6 +1,7 @@
 #include "hash.h"
 #include "hashmap.h"
 #include "greatest.h"
+#include "common.h"
 
 static hashmap_map_t* MAP;
 

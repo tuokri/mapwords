@@ -1,7 +1,9 @@
 #ifndef MAPWORDS_HASH_H
 #define MAPWORDS_HASH_H
 
-#include <stdint.h>
+#include <inttypes.h>
+
+#include "common.h"
 
 // Maximum length for hash function name string.
 #define HASHF_NAME_MAX_LENGTH 128

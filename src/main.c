@@ -2,12 +2,54 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <time.h>
-#include <assert.h>
+#include <inttypes.h>
 
 #include "hash.h"
 #include "hashmap.h"
 #include "util.h"
+
+#ifdef _WIN32
+
+#include <windows.h>
+
+static LARGE_INTEGER frequency;
+static LARGE_INTEGER start;
+static LARGE_INTEGER end;
+static double interval;
+
+#define TIMER_BEGIN() { \
+    QueryPerformanceFrequency(&frequency); \
+    QueryPerformanceCounter(&start); \
+}
+
+#define TIMER_END() { \
+    QueryPerformanceCounter(&end); \
+    interval = (double) (end.QuadPart - start.QuadPart) / frequency.QuadPart; \
+    printf("stats: duration=%f\n", interval); \
+}
+
+#elif defined(__linux__)
+
+#include <time.h>
+
+static struct timespec ts_start;
+static struct timespec ts_stop;
+
+#define TIMER_BEGIN() { \
+    timespec_get(&ts_start, TIME_UTC); \
+}
+
+#define TIMER_END() { \
+    timespec_get(&ts_stop, TIME_UTC); \
+    char buffer[100]; \
+    printf("stats: hashf=%s\n", hashf_name); \
+    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_start.tv_sec)); \
+    printf("stats: start_time=%s.%.9ld\n", buffer, ts_start.tv_nsec); \
+    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_stop.tv_sec)); \
+    printf("stats: stop_time=%s.%.9ld\n", buffer, ts_stop.tv_nsec); \
+}
+
+#endif
 
 // Assume generous 511 (+ '\0') maximum word length.
 #define WORD_SIZE 512
@@ -15,8 +57,7 @@
 int
 main(int argc, char** argv)
 {
-    struct timespec ts_start;
-    timespec_get(&ts_start, TIME_UTC);
+    TIMER_BEGIN();
 
     hash_t (* hashf)(const char*) = NULL;
     char hashf_name[HASHF_NAME_MAX_LENGTH] = {'\0'};
@@ -139,15 +180,7 @@ main(int argc, char** argv)
         }
     }
 
-    struct timespec ts_stop;
-    timespec_get(&ts_stop, TIME_UTC);
-
-    char buffer[100];
-    printf("stats: hashf=%s\n", hashf_name);
-    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_start.tv_sec));
-    printf("stats: start_time=%s.%.9ld\n", buffer, ts_start.tv_nsec);
-    strftime(buffer, sizeof buffer, "%T", gmtime(&ts_stop.tv_sec));
-    printf("stats: stop_time=%s.%.9ld\n", buffer, ts_stop.tv_nsec);
+    TIMER_END();
 
     printf("stats: map_size=%lu\n", map->size);
     printf("stats: collisions=%lu\n", map->collisions);
