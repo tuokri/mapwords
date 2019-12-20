@@ -131,9 +131,11 @@ main(int argc, char** argv)
     }
     else
     {
-        for(uint64_t i = map->capacity - 1; i > map->capacity - 100; --i)
+        uint64_t j = 1;
+        puts("100 most common words:");
+        for(uint64_t i = map->capacity - 1; i >= (map->capacity - 100); --i)
         {
-            printf("[%lu]: %s->%lu\n", i, results[i].key, results[i].value);
+            printf("%-3lu: %32s %32lu\n", j++, results[i].key, results[i].value);
         }
     }
 
