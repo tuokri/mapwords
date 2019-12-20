@@ -1,7 +1,8 @@
+#include <inttypes.h>
+
 #include "hash.h"
 #include "hashmap.h"
 #include "greatest.h"
-#include "common.h"
 
 static hashmap_map_t* MAP;
 
@@ -104,12 +105,12 @@ TEST load_factor(void)
     {
         char c[2] = {test_str_1[i]};
         status = hashmap_add(MAP, c, (int) c[0]);
-        sprintf(msg, "error on hashmap_add(): c=%s, status=%ld", c, status);
+        sprintf(msg, "error on hashmap_add(): c=%s, status=%"PRId64"", c, status);
         ASSERT_EQm(msg, HASHMAP_OK, status);
     }
 
     bucket_count = count_used_buckets_in_map(MAP);
-    sprintf(msg, "bucket_count=%lu", bucket_count);
+    sprintf(msg, "bucket_count=%"PRIu64"", bucket_count);
     ASSERT_EQm(msg, 13, bucket_count);
     ASSERT_EQ(HASHMAP_INITIAL_CAPACITY * 2, MAP->capacity);
     ASSERT_EQ(strlen(test_str_1), MAP->size);
@@ -118,7 +119,7 @@ TEST load_factor(void)
     {
         char c[2] = {test_str_2[i]};
         status = hashmap_add(MAP, c, (int) c[0]);
-        sprintf(msg, "error on hashmap_add(): c=%s, status=%ld", c, status);
+        sprintf(msg, "error on hashmap_add(): c=%s, status=%"PRId64"", c, status);
         ASSERT_EQm(msg, HASHMAP_OK, status);
     }
 
@@ -126,7 +127,7 @@ TEST load_factor(void)
     ASSERT_EQ(HASHMAP_KEY_FOUND, hashmap_add(MAP, "y", (int) 'y'));
 
     bucket_count = count_used_buckets_in_map(MAP);
-    sprintf(msg, "bucket_count=%lu", bucket_count);
+    sprintf(msg, "bucket_count=%"PRIu64"", bucket_count);
     ASSERT_EQm(msg, 25, bucket_count);
     ASSERT_EQ(HASHMAP_INITIAL_CAPACITY * 2 * 2, MAP->capacity);
     ASSERT_EQ(strlen(test_str_1) + strlen(test_str_2), MAP->size);
@@ -142,7 +143,7 @@ TEST load_factor(void)
     char new_key[256] = {'\0'};
     for(uint64_t i = 0; i < more; ++i)
     {
-        sprintf(new_key, "blob%lu", i);
+        sprintf(new_key, "blob%"PRIu64"", i);
         ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
     }
     ASSERT_EQ(strlen(test_str_3) + more, MAP->size);
@@ -154,18 +155,18 @@ TEST load_factor(void)
         char c[2] = {test_str_3[i]};
         status = hashmap_add(MAP, c, (int) c[0]);
 
-        sprintf(msg, "error on hashmap_add(): c=%s, size changed to: %lu from: %lu",
+        sprintf(msg, "error on hashmap_add(): c=%s, size changed to: %"PRIu64" from: %"PRIu64"",
                 c, MAP->size, correct_sz);
         ASSERT_EQm(msg, correct_sz, MAP->size);
 
-        sprintf(msg, "error on hashmap_add(): c=%s, status=%ld", c, status);
+        sprintf(msg, "error on hashmap_add(): c=%s, status=%"PRId64"", c, status);
         ASSERT_EQm(msg, HASHMAP_KEY_FOUND, status);
     }
 
     bucket_count = count_used_buckets_in_map(MAP);
-    sprintf(msg, "bucket_count=%lu", bucket_count);
+    sprintf(msg, "bucket_count=%"PRIu64"", bucket_count);
     ASSERT_EQm(msg, 25 + more, bucket_count);
-    sprintf(msg, "MAP->capacity=%lu != %u", MAP->capacity,
+    sprintf(msg, "MAP->capacity=%"PRIu64" != %u", MAP->capacity,
             HASHMAP_INITIAL_CAPACITY * 2 * 2 * 2);
     ASSERT_EQm(msg, HASHMAP_INITIAL_CAPACITY * 2 * 2 * 2, MAP->capacity);
     ASSERT_EQ(correct_sz, MAP->size);
@@ -186,7 +187,7 @@ TEST update(void)
     ASSERT_EQ(HASHMAP_OK, status);
 
     status = hashmap_get(MAP, "test_key69", &out);
-    sprintf(msg, "error on hashmap_get(): status=%ld", status);
+    sprintf(msg, "error on hashmap_get(): status=%"PRId64"", status);
     ASSERT_EQm(msg, HASHMAP_KEY_FOUND, status);
     ASSERT_EQ(666, out);
 
@@ -199,7 +200,7 @@ TEST sort(void)
     char new_key[256] = {'\0'};
     for(uint64_t i = 0; i < more; ++i)
     {
-        sprintf(new_key, "blob%lu", i);
+        sprintf(new_key, "blob%"PRIu64"", i);
         ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
     }
 
@@ -215,7 +216,7 @@ TEST sort(void)
 
     for(uint64_t i = 0; i < MAP->capacity; ++i)
     {
-        printf("[%lu]: %s->%lu (in_use=%d, hash=%lu)\n",
+        printf("[%"PRIu64"]: %s->%"PRIu64" (in_use=%d, hash=%"PRIu64"\n",
             i, sorted[i].key, sorted[i].value, sorted[i].in_use, sorted[i].hash);
         ASSERT_FALSE(sorted[i].key == NULL);
         ASSERT(sorted[i].in_use == false || sorted[i].in_use == true);
@@ -231,7 +232,7 @@ TEST swap(void)
     char new_key[256] = {'\0'};
     for(uint64_t i = 0; i < more; ++i)
     {
-        sprintf(new_key, "blob%lu", i);
+        sprintf(new_key, "blob%"PRIu64"", i);
         ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
     }
 
