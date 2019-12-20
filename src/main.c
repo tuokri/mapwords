@@ -133,7 +133,7 @@ main(int argc, char** argv)
     {
         uint64_t j = 1;
         puts("100 most common words:");
-        for(uint64_t i = map->capacity - 1; i >= (map->capacity - 100); --i)
+        for (uint64_t i = map->capacity - 1; i >= (map->capacity - 100); --i)
         {
             printf("%-3lu: %32s %32lu\n", j++, results[i].key, results[i].value);
         }

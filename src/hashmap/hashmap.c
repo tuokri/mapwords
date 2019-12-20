@@ -155,7 +155,8 @@ hashmap_lookup_index(hashmap_map_t* map, hash_t hash, char* key, uint64_t* out)
                     *out = index;
                     return HASHMAP_KEY_FOUND;
                 }
-            } else
+            }
+            else
             {
                 break;
             }
@@ -397,6 +398,7 @@ hashmap_sort_by_value_recurse(uint64_t low, uint64_t high, hashmap_bucket_t* out
         hashmap_sort_by_value_recurse(pivot + 1, high, out);
     }
 }
+
 //
 int64_t
 hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
