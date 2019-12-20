@@ -102,6 +102,10 @@ hashmap_update(hashmap_map_t* map, char* key, int64_t new_value);
 int64_t
 hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity);
 
+// Swap buckets.
+void
+hashmap_bucket_swap(hashmap_bucket_t* b1, hashmap_bucket_t* b2);
+
 // Sort map by value in ascending order.
 // Quicksort with random pivoting.
 // Memory for 'out' parameter is allocated in the function.

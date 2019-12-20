@@ -224,6 +224,32 @@ TEST sort(void)
     PASS();
 }
 
+TEST swap(void)
+{
+    uint64_t more = 32;
+    char new_key[256] = {'\0'};
+    for(uint64_t i = 0; i < more; ++i)
+    {
+        sprintf(new_key, "blob%lu", i);
+        ASSERT_EQ(HASHMAP_OK, hashmap_add(MAP, new_key, i));
+    }
+
+    hashmap_bucket_t* b1;
+    hashmap_bucket_t* b2;
+
+    b1 = &(MAP->buckets)[52];
+    b2 = &(MAP->buckets)[56];
+    uint64_t original_52 = b1->value;
+    uint64_t original_56 = b2->value;
+
+    hashmap_bucket_swap(b1, b2);
+
+    ASSERT(original_52 == MAP->buckets[56].value);
+    ASSERT(original_56 == MAP->buckets[52].value);
+
+    PASS();
+}
+
 SUITE (hashmap_suite)
 {
     MAP = hashmap_init(hash_djb2);
@@ -252,6 +278,10 @@ SUITE (hashmap_suite)
 
     MAP = hashmap_init(hash_djb2);
     RUN_TEST(sort);
+    hashmap_free(MAP);
+
+    MAP = hashmap_init(hash_djb2);
+    RUN_TEST(swap);
     hashmap_free(MAP);
 }
 

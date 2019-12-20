@@ -336,134 +336,68 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 }
 
 void
-hashmap_bucket_swap(hashmap_bucket_t** b1, hashmap_bucket_t** b2)
+hashmap_bucket_swap(hashmap_bucket_t* b1, hashmap_bucket_t* b2)
 {
 #ifdef DEBUG
     assert(b1 != NULL);
     assert(b2 != NULL);
-    assert(*b1 != NULL);
-    assert(*b2 != NULL);
 #endif
 
-    hashmap_bucket_t* tempb = *b1;
+    hashmap_bucket_t tempb = *b1;
     *b1 = *b2;
     *b2 = tempb;
 }
 
 // Lomuto's partition scheme.
 uint64_t
-hashmap_buckets_partition(hashmap_bucket_t** buckets,
+hashmap_buckets_partition(hashmap_bucket_t* buckets,
                           uint64_t low, uint64_t high)
 {
-    int64_t pivot = (*buckets)[high].value;
+    int64_t pivot = buckets[high].value;
     uint64_t i = low;
 
     for (uint64_t j = low; j <= high - 1; ++j)
     {
-        if ((*buckets)[j].value <= pivot)
+        if (buckets[j].value <= pivot)
         {
-            hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
-            if(!b1)
-            {
-                goto err;
-            }
-            hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
-            if(!b2)
-            {
-                goto err;
-            }
-
-            *b1 = &(*buckets)[i];
-            *b2 = &(*buckets)[j];
-
-            hashmap_bucket_swap(b1, b2);
-
-            free(b1);
-            free(b2);
-
+            hashmap_bucket_swap(&buckets[i], &buckets[j]);
             ++i;
         }
     }
 
-    hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
-    if(!b1)
-    {
-        goto err;
-    }
-    hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
-    if(!b2)
-    {
-        goto err;
-    }
-
-    *b1 = &(*buckets)[i];
-    *b2 = &(*buckets)[high];
-
-    hashmap_bucket_swap(b1, b2);
-
-    free(b1);
-    free(b2);
-
+    hashmap_bucket_swap(&buckets[i], &buckets[high]);
     return i;
-
-    err:
-    fprintf(stderr, "hashmap_buckets_partition(): error allocating memory\n");
-    exit(HASHMAP_ERROR);
 }
 
 uint64_t
-hashmap_buckets_partition_r(hashmap_bucket_t** buckets,
+hashmap_buckets_partition_r(hashmap_bucket_t* buckets,
                             uint64_t low, uint64_t high)
 {
     uint64_t random = low + rand() % (high - low);
 
 #ifdef DEBUG
     assert(buckets != NULL);
-    assert(*buckets != NULL);
     assert(low >= 0);
     assert(high >= 0);
     assert(random >= low);
     assert(random <= high);
 #endif
 
-    hashmap_bucket_t** b1 = malloc(sizeof(hashmap_bucket_t**));
-    if(!b1)
-    {
-        goto err;
-    }
-    hashmap_bucket_t** b2 = malloc(sizeof(hashmap_bucket_t**));
-    if(!b2)
-    {
-        goto err;
-    }
-
-    *b1 = &(*buckets)[random];
-    *b2 = &(*buckets)[high];
-
-    hashmap_bucket_swap(b1, b2);
-
-    free(b1);
-    free(b2);
+    hashmap_bucket_swap(&buckets[random], &buckets[high]);
     return hashmap_buckets_partition(buckets, low, high);
-
-    err:
-    fprintf(stderr, "hashmap_buckets_partition_r(): error allocating memory\n");
-    exit(HASHMAP_ERROR);
 }
 
 void
-hashmap_sort_by_value_recurse(uint64_t low, uint64_t high, hashmap_bucket_t** out)
+hashmap_sort_by_value_recurse(uint64_t low, uint64_t high, hashmap_bucket_t* out)
 {
-    uint64_t pivot;
-
     if (low < high)
     {
-        pivot = hashmap_buckets_partition_r(out, low, high);
+        uint64_t pivot = hashmap_buckets_partition_r(out, low, high);
         hashmap_sort_by_value_recurse(low, pivot - 1, out);
         hashmap_sort_by_value_recurse(pivot + 1, high, out);
     }
 }
-
+//
 int64_t
 hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
                       uint64_t high, hashmap_bucket_t** out)
@@ -527,10 +461,9 @@ hashmap_sort_by_value(const hashmap_map_t* map, uint64_t low,
 
     if (low < high)
     {
-        pivot = hashmap_buckets_partition_r(out, low, high);
-        printf("pivot=%lu\n", pivot);
-        hashmap_sort_by_value_recurse(low, pivot - 1, out);
-        hashmap_sort_by_value_recurse(pivot + 1, high, out);
+        pivot = hashmap_buckets_partition_r(*out, low, high);
+        hashmap_sort_by_value_recurse(low, pivot - 1, *out);
+        hashmap_sort_by_value_recurse(pivot + 1, high, *out);
     }
 
     return HASHMAP_OK;

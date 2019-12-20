@@ -131,7 +131,7 @@ main(int argc, char** argv)
     }
     else
     {
-        for(uint64_t i = 0; i < map->capacity; ++i)
+        for(uint64_t i = map->capacity - 1; i > map->capacity - 100; --i)
         {
             printf("[%lu]: %s->%lu\n", i, results[i].key, results[i].value);
         }
