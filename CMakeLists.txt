@@ -3,7 +3,7 @@ project(mapwords C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_compile_options(-Wall -Werror -pedantic)
+add_compile_options(-Wall -Werror -pedantic -Wno-format)
 
 add_subdirectory(src)
 add_subdirectory(test)
