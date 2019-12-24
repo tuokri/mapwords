@@ -54,10 +54,16 @@ else \
 #elif defined(__linux__)
 
 #include <sys/random.h>
+#include <errno.h>
 
 #define SEED() { \
     void* buf = malloc(sizeof(int) * 32); \
-    getrandom(buf, 32, GRND_RANDOM); \
+    if (getrandom(buf, 32, GRND_RANDOM) == -1) \
+    { \
+        int e = errno; \
+        puts("error reading random device"); \
+        exit(e); \
+    } \
     srand(*(unsigned*) buf); \
     free(buf); \
 }
