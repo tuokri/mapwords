@@ -171,7 +171,8 @@ main(int argc, char** argv)
     {
         uint64_t j = 1;
         puts("100 most common words:");
-        for (uint64_t i = map->capacity - 1; i >= (map->capacity - 100); --i)
+        uint64_t limit = (map->capacity >= 100) ? (map->capacity - 100) : (map->capacity - map->size);
+        for (uint64_t i = map->capacity - 1; i >= limit; --i)
         {
             printf("%-3lu: %-16s %16lu\n", j++, results[i].key, results[i].value);
         }
@@ -179,7 +180,7 @@ main(int argc, char** argv)
 
     TIMER_END();
 
-    printf("stats: hashf=%s\n", hashf_name); \
+    printf("stats: hashf=%s\n", hashf_name);
     printf("stats: map_size=%"PRIu64"\n", map->size);
     printf("stats: collisions=%"PRIu64"\n", map->collisions);
     printf("stats: word_count=%"PRIu64"\n", wordcount);
