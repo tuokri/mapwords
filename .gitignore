@@ -4,6 +4,9 @@
 # Python
 venv
 
+# Local pyenv version cache
+.python-version
+
 # CMake
 cmake-build-debug
 CMakeCache.txt
