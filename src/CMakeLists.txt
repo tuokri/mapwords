@@ -13,4 +13,4 @@ add_executable(
 )
 
 target_link_libraries(mapwords m)
-set_property(TARGET mapwords PROPERTY C_STANDARD 11)
+target_compile_options(mapwords PUBLIC -Ofast)
