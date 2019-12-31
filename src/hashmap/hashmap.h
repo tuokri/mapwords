@@ -34,6 +34,8 @@ arbitrarily, but the CPython choice is also used here.
 #define HASHMAP_KEY_NOT_FOUND 1
 #define HASHMAP_KEY_FOUND 2
 
+extern const uint64_t EMPTY_INDEX;
+
 typedef struct hashmap_bucket
 {
     hash_t hash;
@@ -45,10 +47,12 @@ typedef struct hashmap_bucket
 typedef struct hashmap_map
 {
     uint64_t collisions; // Index lookup collisions count.
+    uint64_t rehashes; // Rehash count.
     uint64_t size;
     uint64_t capacity;
     hash_t (* hashf)(const char*);
     hashmap_bucket_t* buckets;
+    uint64_t* indices;
 
 #ifdef DEBUG
     // Assertion flag for detecting cascading/recursive rehashing.

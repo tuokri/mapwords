@@ -185,6 +185,8 @@ main(int argc, char** argv)
     printf("stats: collisions=%"PRIu64"\n", map->collisions);
     printf("stats: word_count=%"PRIu64"\n", wordcount);
     printf("stats: char_count=%"PRIu64"\n", charcount);
+    printf("stats: rehash_count=%"PRIu64"\n", map->rehashes);
+    printf("stats: capacity=%"PRIu64"\n", map->capacity);
 
     // hashmap_print(map);
 

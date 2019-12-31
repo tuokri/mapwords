@@ -70,6 +70,8 @@ else \
 
 #endif
 
+const uint64_t EMPTY_INDEX = 0LU;
+
 void
 hashmap_free_buckets(hashmap_bucket_t* buckets, uint64_t capacity)
 {
@@ -134,6 +136,14 @@ hashmap_init_cap(
     if (!map)
     {
         fprintf(stderr, "hashmap_init_cap(): error: calloc(): map\n");
+        return NULL;
+    }
+
+    map->indices = calloc(capacity, sizeof(uint64_t));
+    if (!map->indices)
+    {
+        free(map);
+        fprintf(stderr, "hashmap_init_cap(): error: calloc(): indices()\n");
         return NULL;
     }
 
@@ -381,6 +391,7 @@ hashmap_rehash(hashmap_map_t* map, uint64_t new_capacity)
 #endif
 
     hashmap_free_buckets(old_buckets, old_capacity);
+    ++map->rehashes;
     return HASHMAP_OK;
 }
 
